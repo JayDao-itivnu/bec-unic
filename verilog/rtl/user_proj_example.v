@@ -34,123 +34,285 @@
  *
  *-------------------------------------------------------------
  */
+`include "../../../verilog/rtl/counter.v"
 
 module user_proj_example #(
-    parameter BITS = 16
+	parameter BITS = 16
 )(
 `ifdef USE_POWER_PINS
-    inout vccd1,	// User area 1 1.8V supply
+	inout vccd1,	// User area 1 1.8V supply
+    inout vccd2,	// User area 2 1.8v supply
     inout vssd1,	// User area 1 digital ground
+    inout vssd2,	// User area 2 digital ground
 `endif
 
-    // Wishbone Slave ports (WB MI A)
-    input wb_clk_i,
-    input wb_rst_i,
-    input wbs_stb_i,
-    input wbs_cyc_i,
-    input wbs_we_i,
-    input [3:0] wbs_sel_i,
-    input [31:0] wbs_dat_i,
-    input [31:0] wbs_adr_i,
-    output wbs_ack_o,
-    output [31:0] wbs_dat_o,
+	// // Wishbone Slave ports (WB MI A)
+	input wb_clk_i,
+	input wb_rst_i,
 
-    // Logic Analyzer Signals
-    input  [127:0] la_data_in,
-    output [127:0] la_data_out,
-    input  [127:0] la_oenb,
-
-    // IOs
-    input  [BITS-1:0] io_in,
-    output [BITS-1:0] io_out,
-    output [BITS-1:0] io_oeb,
-
-    // IRQ
-    output [2:0] irq
+	// Logic Analyzer Signals
+	input  [127:0] la_data_in,
+	output reg [127:0] la_data_out,
+	input  [127:0] la_oenb
 );
-    wire clk;
-    wire rst;
+	wire clk;
+	wire rst;
+	reg master_enable, master_load, master_ena_proc, enable_proc, enable_write;
+	wire slv_done, updateRegs;
+	wire [BITS-1:0] la_write;
+	parameter DELAY = 2000;
 
-    wire [BITS-1:0] rdata; 
-    wire [BITS-1:0] wdata;
-    wire [BITS-1:0] count;
+	reg [162:0] buffer_w1, buffer_z1, buffer_w2, buffer_z2, buffer_inv_w0, buffer_d, buffer_key;
+    reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
+    reg [162:0] reg_wout, reg_zout;
+    reg reg_ki;
 
-    wire valid;
-    wire [3:0] wstrb;
-    wire [BITS-1:0] la_write;
+	// FSM Definition
+	reg [1:0]current_state, next_state;
+	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
+	reg master_start, read_done, master_read;
 
-    // WB MI A
-    assign valid = wbs_cyc_i && wbs_stb_i; 
-    assign wstrb = wbs_sel_i & {4{wbs_we_i}};
-    assign wbs_dat_o = {{(32-BITS){1'b0}}, rdata};
-    assign wdata = wbs_dat_i[BITS-1:0];
+	// Assuming LA probes [63:32] are for controlling the count register  
+	assign la_write = ~la_oenb[63:64-BITS];
+	// Assumming cpuStatus 
+	// assign cpuStatus = (la_data_in[15:0] == 16'hFFFF |) ? 1'b1 : (la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122]);
+	// Assuming LA probes [65:64] are for controlling the count clk & reset  
+	assign clk = wb_clk_i;
+	assign rst = wb_rst_i;
+	assign slv_done = (current_state == 2'b11) ? 1'b1 : 1'b0;
 
-    // IO
-    assign io_out = count;
-    assign io_oeb = {(BITS){rst}};
+    /*
+    Nơi khai báo tên instantaneous và nối các chân của khối BEC.
+    */
+	counter bec_core (
+		.clk(clk),
+		.reset(rst),
+		.enb(master_ena_proc),
+		.done(updateRegs)
+	);
+	
+	always @(posedge clk or rst) begin
+		if (rst) 
+			current_state <= idle;
+		else
+			current_state <= next_state;
+	end
 
-    // IRQ
-    assign irq = 3'b000;	// Unused
+	always @(enable_write or enable_proc or updateRegs or slv_done) begin
+		case (current_state)
+			idle: begin
+				if (enable_write == 1'b1) begin
+					next_state <= write_mode;
+				end else begin 
+					next_state <= idle;
+				end
+			end
 
-    // LA
-    assign la_data_out = {{(128-BITS){1'b0}}, count};
-    // Assuming LA probes [63:32] are for controlling the count register  
-    assign la_write = ~la_oenb[63:64-BITS] & ~{BITS{valid}};
-    // Assuming LA probes [65:64] are for controlling the count clk & reset  
-    assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
-    assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
+			write_mode: begin
+				if (enable_proc == 1'b1) begin
+					next_state <= proc;
+				end else begin 
+					next_state <= write_mode;
+				end
+			end
 
-    counter #(
-        .BITS(BITS)
-    ) counter(
-        .clk(clk),
-        .reset(rst),
-        .ready(wbs_ack_o),
-        .valid(valid),
-        .rdata(rdata),
-        .wdata(wbs_dat_i[BITS-1:0]),
-        .wstrb(wstrb),
-        .la_write(la_write),
-        .la_input(la_data_in[63:64-BITS]),
-        .count(count)
-    );
+			proc: begin
+				if (slv_done == 1'b1) begin
+					next_state <= read_mode;
+				end else begin 
+					next_state <= proc;
+				end
+			end
 
-endmodule
+			read_mode: begin
+				if (updateRegs == 1'b1) begin
+					next_state <= idle;
+				end else begin
+					next_state <= read_mode;
+				end
+			end
 
-module counter #(
-    parameter BITS = 16
-)(
-    input clk,
-    input reset,
-    input valid,
-    input [3:0] wstrb,
-    input [BITS-1:0] wdata,
-    input [BITS-1:0] la_write,
-    input [BITS-1:0] la_input,
-    output reg ready,
-    output reg [BITS-1:0] rdata,
-    output reg [BITS-1:0] count
-);
+			default:
+			next_state <= idle;
+		endcase
+	end
 
-    always @(posedge clk) begin
-        if (reset) begin
-            count <= 1'b0;
-            ready <= 1'b0;
-        end else begin
-            ready <= 1'b0;
-            if (~|la_write) begin
-                count <= count + 1'b1;
+    always @(*) begin
+        case (current_state)
+            idle: begin
+                enable_proc <= 1'b0;
+
+                if (la_data_in[31:16] == 16'hAB30) begin
+                    enable_write <= 1'b1;
+                end else 
+                    enable_write <= 1'b0;
+            end 
+
+            write_mode: begin
+                if (la_data_in[31:16] == 16'hAB41) begin
+                    enable_proc <= 1'b1;
+                end else 
+                    enable_proc <= 1'b0;
             end
-            if (valid && !ready) begin
-                ready <= 1'b1;
-                rdata <= count;
-                if (wstrb[0]) count[7:0]   <= wdata[7:0];
-                if (wstrb[1]) count[15:8]  <= wdata[15:8];
-            end else if (|la_write) begin
-                count <= la_write & la_input;
+
+            proc: begin
+                enable_write <= 1'b0;
+                master_ena_proc <= 1'b1;
             end
-        end
+
+            read_mode: begin
+                master_ena_proc <= 1'b0;
+
+            end
+            default: begin
+                master_ena_proc <= 1'b0;
+                enable_write <= 1'b0;
+                enable_proc <= 1'b0;
+            end
+        endcase
     end
 
+	always @(posedge clk or rst) begin
+		if (rst) begin
+			reg_w1      <= 0;
+			reg_z1      <= 0;
+			reg_w2      <= 0;
+			reg_z2      <= 0;
+			reg_inv_w0  <= 0;
+			reg_d       <= 0;
+			reg_key     <= 0;
+            reg_ki      <= 0;
+			la_data_out <= {(128){1'b0}};
+            
+			enable_proc <= 1'b0;
+			enable_write <= 1'b0;
+		end else begin
+			case (current_state)
+				idle: begin
+					reg_w1      <= 0;
+                    reg_z1      <= 0;
+                    reg_w2      <= 0;
+                    reg_z2      <= 0;
+                    reg_inv_w0  <= 0;
+                    reg_d       <= 0;
+                    reg_key     <= 0;
+                    reg_ki      <= 0;
+					
+                    reg_wout    <= 0;
+                    reg_zout    <= 0;
+
+					read_done <= 1'b0;
+					la_data_out[127:122] <= 6'b010000; 
+
+				end 
+
+				write_mode: begin
+					if (la_data_in[95:82] == 14'b00000000000001) begin
+						reg_w1[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0001; 	//0x04
+					end else if (la_data_in[95:82] == 14'b00000000000011) begin
+						reg_w1[81:0] 		<= la_data_in[81:1];
+						la_data_out[125:122] <= 4'b0010;	//0x08
+					end else if (la_data_in[95:82] == 14'b00000000000111) begin
+						reg_z1[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0011;	//0x0C
+					end else if (la_data_in[95:82] == 14'b00000000001111) begin
+						reg_z1[81:0] 		<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0100; 	//0x10
+					end else if (la_data_in[95:82] == 14'b00000000011111) begin
+						reg_w2[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0101;	//0x14
+					end else if (la_data_in[95:82] == 14'b00000000111111) begin
+						reg_w2[81:0] 		<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0110;	//0x18
+					end else if (la_data_in[95:82] == 14'b00000001111111) begin
+						reg_z2[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0111;	//0x1C
+					end else if (la_data_in[95:82] == 14'b00000011111111) begin
+						reg_z2[81:0] 		<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1000;	//0x20
+					end else if (la_data_in[95:82] == 14'b00000111111111) begin
+						reg_inv_w0[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1001;	//0x24
+					end else if (la_data_in[95:82] == 14'b00001111111111) begin
+						reg_inv_w0[81:0] 		<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1010;	//0x28
+					end else if (la_data_in[95:82] == 14'b00011111111111) begin
+						reg_d[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1011;	//0x2C
+					end else if (la_data_in[95:82] == 14'b00111111111111) begin
+						reg_d[81:0] 		<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1100; 	//0x30
+					end else if (la_data_in[95:82] == 14'b01111111111111) begin
+						reg_key[162:82] 	<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1101;	//0x34
+					end else if (la_data_in[95:82] == 14'b11111111111111) begin
+						reg_key[81:0] 		<= la_data_in[80:0];
+						la_data_out[127:122] <= 6'b011110;	//0x78
+					end
+				end
+				
+				proc: begin
+					la_data_out[127:122] <= 6'b100111;
+					la_data_out[121:0] <= {(122){1'b0}};
+                    // if (next_key) begin
+                    //     reg_key <= reg_key >> 1;
+                    // end
+				end
+
+				read_mode: begin
+					enable_write <= 1'h0;
+					if (la_data_in[31:24] == 8'hAB) begin
+						case (la_data_in[23:16]) 
+							8'h04: begin
+								la_data_out[113:32] 	<= reg_wout[80:0]; 
+								la_data_out[127:114]	<= 14'b11001000000000;
+							end
+
+							8'h08: begin
+								la_data_out[113:32] 	<= reg_zout[162:81]; 
+								la_data_out[127:114]	<= 14'b11001100000000;
+							end
+
+							8'h0C: begin
+								la_data_out[113:32] 	<= reg_zout[80:0]; 
+								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
+							end
+
+							8'h10: begin
+								if (updateRegs)
+									read_done <= 1'b1;
+								else
+									read_done <= 1'b0;
+							end
+
+							default: begin
+                                la_data_out[113:32] 	<= reg_wout[162:81]; 
+                                la_data_out[127:114]	<= 14'b11000100000000;
+                            end
+						endcase
+					end
+				end
+				
+				default: begin
+					reg_w1      <= 0;
+                    reg_z1      <= 0;
+                    reg_w2      <= 0;
+                    reg_z2      <= 0;
+                    reg_inv_w0  <= 0;
+                    reg_d       <= 0;
+                    reg_key     <= 0;
+                    reg_ki      <= 0;
+					
+                    reg_wout    <= 0;
+                    reg_zout    <= 0;
+                    
+					read_done <= 1'b0;
+					la_data_out[127:122] <= 6'b010000; 
+				end
+			endcase
+		end
+	end
 endmodule
+
 `default_nettype wire

@@ -1,4 +1,5 @@
 #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_spec.h>
+#include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
 
 static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
 	//  Configure BEC Status Notifications [127:122]
@@ -57,66 +58,69 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 
 static uint32_t write_data (int i) {
   while (reg_la3_data_in != 0x78000000) {
-	// Writing w1 register
-	write_la(reg_la3_data_in, w1[i*3 + 0], w1[i*3 + 1], w1[i*3 + 2]);
-	write_la(reg_la3_data_in, w1[i*3 + 3], w1[i*3 + 4], w1[i*3 + 5]);
+	if (i == 0) {
+		// Writing w1 register
+		write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
+		write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
 
-	// Writing z1 register
-	write_la(reg_la3_data_in, z1[i*3 + 0], z1[i*3 + 1], z1[i*3 + 2]);
-	write_la(reg_la3_data_in, z1[i*3 + 3], z1[i*3 + 4], z1[i*3 + 5]);
+		// Writing z1 register
+		write_la(reg_la3_data_in, z1[0], z1[1], z1[2]);
+		write_la(reg_la3_data_in, z1[3], z1[4], z1[5]);
 
-	// Writing w2 register
-	write_la(reg_la3_data_in, w2[i*3 + 0], w2[i*3 + 1], w2[i*3 + 2]);
-	write_la(reg_la3_data_in, w2[i*3 + 3], w2[i*3 + 4], w2[i*3 + 5]);
+		// Writing w2 register
+		write_la(reg_la3_data_in, w2[0], w2[1], w2[2]);
+		write_la(reg_la3_data_in, w2[3], w2[4], w2[5]);
 
-	// Writing z2 register
-	write_la(reg_la3_data_in, z2[i*3 + 0], z2[i*3 + 1], z2[i*3 + 2]);
-	write_la(reg_la3_data_in, z2[i*3 + 3], z2[i*3 + 4], z2[i*3 + 5]);
+		// Writing z2 register
+		write_la(reg_la3_data_in, z2[0], z2[1], z2[2]);
+		write_la(reg_la3_data_in, z2[3], z2[4], z2[5]);
 
-	// Writing inv_w0 register
-	write_la(reg_la3_data_in, inv_w0[i*3 + 0], inv_w0[i*3 + 1], inv_w0[i*3 + 2]);
-	write_la(reg_la3_data_in, inv_w0[i*3 + 3], inv_w0[i*3 + 4], inv_w0[i*3 + 5]);
+		// Writing inv_w0 register
+		write_la(reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
+		write_la(reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
 
-	// Writing d register
-	write_la(reg_la3_data_in, d[i*3 + 0], d[i*3 + 1], d[i*3 + 2]);
-	write_la(reg_la3_data_in, d[i*3 + 3], d[i*3 + 4], d[i*3 + 5]);
-
-	// Writing key register
-	write_la(reg_la3_data_in, key[i*3 + 0], key[i*3 + 1], key[i*3 + 2]);
-	write_la(reg_la3_data_in, key[i*3 + 3], key[i*3 + 4], key[i*3 + 5]);
+		// Writing d register
+		write_la(reg_la3_data_in, d[0], d[1], d[2]);
+		write_la(reg_la3_data_in, d[3], d[4], d[5]);
+		// Writing key register
+		write_la(reg_la3_data_in, k_array[0], k_array[1], k_array[2]);
+		write_la(reg_la3_data_in, k_array[3], k_array[4], k_array[5]);
+	} else {
+		write_la(reg_la3_data_in, k_array[i*3 + 0], k_array[i*3 + 1], k_array[i*3 + 2]);
+		write_la(reg_la3_data_in, k_array[i*3 + 3], k_array[i*3 + 4], k_array[i*3 + 5]);
+		}
 	}
 }
 
 static uint32_t read_data () {
 	
 	uint32_t reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;
-	uint32_t cpuStatus = 0x0000FFFF;
 	while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
 		if ((reg_la3_data_in & 0xFF000000) == 0xC8000000) {
 			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
 			reg_wout_4 = reg_la2_data_in;
 			reg_wout_5 = reg_la1_data_in;
 
-			reg_la0_data = 0xAB080000 ^ cpuStatus;
+			reg_la0_data = 0xAB080000;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
 			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
 			reg_zout_1 = reg_la2_data_in;
 			reg_zout_2 = reg_la1_data_in;
 
-			reg_la0_data = 0xAB0C0000 ^ cpuStatus;
+			reg_la0_data = 0xAB0C0000;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
 			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
 			reg_zout_4 = reg_la2_data_in;
 			reg_zout_5 = reg_la1_data_in;
 
-			reg_la0_data = 0xAB100000 ^ cpuStatus;
+			reg_la0_data = 0xAB100000;
 			break;
 		} else {
 			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
 			reg_wout_1 = reg_la2_data_in;
 			reg_wout_2 = reg_la1_data_in;
 			
-			reg_la0_data = 0xAB040000 ^ cpuStatus;
+			reg_la0_data = 0xAB040000;
 		}
 	}
 	return reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;

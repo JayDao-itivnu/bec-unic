@@ -28,9 +28,11 @@ module la_bec_tb;
 	wire uart_tx;
 	wire [37:0] mprj_io;
 	wire [15:0] checkbits;
+	wire [7:0] id_test;
 
 	assign checkbits  = mprj_io[31:16];
 	assign uart_tx = mprj_io[6];
+	assign id_test = mprj_io[15:8];
 
 	always #12.5 clock <= (clock === 1'b0);
 
@@ -144,6 +146,11 @@ module la_bec_tb;
 			repeat (1000) @(posedge clock);
 			// $display("+1000 cycles");
 		end
+		// wait (checkbits == 16'hABFF);
+		// repeat (1) begin
+		// 	repeat (1000) @(posedge clock);
+		// 	$display("+1000 cycles");
+		// end
 		$display("%c[1;31m",27);
 		`ifdef GL
 			$display ("Monitor: Timeout, Test LA (GL) Failed");
@@ -154,14 +161,28 @@ module la_bec_tb;
 		$finish;
 	end
 
-	initial begin
-		wait(checkbits == 16'hAB40);
-		$display("LA BEC started");
-		wait(checkbits == 16'hAB41);
-		wait(checkbits == 16'hAB51);
-		$display("LA BEC passed");
-		#10000;
-		$finish;
+	always @(*) begin
+		if (checkbits == 16'hAB30) begin
+			$display("LA BEC: #%h Started", id_test);
+		end else if(checkbits == 16'hAB41) begin
+			$display("LA BEC: Processor writes data to BEC");
+		end else if(checkbits == 16'hAB42) begin
+			$display("LA BEC: BEC is processing");
+		end else if(checkbits == 16'hAB51) begin
+			$display("LA BEC: BEC done. Updating results to Processor");
+		end
+
+		if (checkbits == 16'hAB43) begin
+			$display("LA BEC: #%h write data done", id_test);
+		end else if (checkbits == 16'hAB44) begin
+			$display("LA Test #%h write data failed", id_test);
+		end
+
+		if (checkbits == 16'hABFF) begin
+			$display("LA BEC done");
+			#10000;
+			$finish;
+		end
 	end
 
 	initial begin

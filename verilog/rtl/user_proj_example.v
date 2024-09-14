@@ -57,8 +57,8 @@ module user_proj_example #(
 );
 	wire clk;
 	wire rst;
-	reg master_enable, master_load, master_ena_proc, enable_proc, enable_write;
-	wire slv_done, updateRegs;
+	reg master_enable, master_load, master_ena_proc, enable_proc, enable_write, updateRegs;
+	wire slv_done;
 	wire [BITS-1:0] la_write;
 	parameter DELAY = 2000;
 
@@ -70,16 +70,15 @@ module user_proj_example #(
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
-	reg master_start, read_done, master_read;
 
 	// Assuming LA probes [63:32] are for controlling the count register  
 	assign la_write = ~la_oenb[63:64-BITS];
-	// Assumming cpuStatus 
-	// assign cpuStatus = (la_data_in[15:0] == 16'hFFFF |) ? 1'b1 : (la_data_in[125] | la_data_in[124] | la_data_in[123] | la_data_in[122]);
+	
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
-	assign slv_done = (current_state == 2'b11) ? 1'b1 : 1'b0;
+	
+	// assign slv_done = (current_state == 2'b11) ? 1'b1 : 1'b0;
 
     /*
     Nơi khai báo tên instantaneous và nối các chân của khối BEC.
@@ -88,7 +87,7 @@ module user_proj_example #(
 		.clk(clk),
 		.reset(rst),
 		.enb(master_ena_proc),
-		.done(updateRegs)
+		.done(slv_done)
 	);
 	
 	always @(posedge clk or rst) begin
@@ -141,7 +140,7 @@ module user_proj_example #(
         case (current_state)
             idle: begin
                 enable_proc <= 1'b0;
-
+				updateRegs <= 1'b0;
                 if (la_data_in[31:16] == 16'hAB30) begin
                     enable_write <= 1'b1;
                 end else 
@@ -149,6 +148,7 @@ module user_proj_example #(
             end 
 
             write_mode: begin
+				updateRegs <= 1'b0;
                 if (la_data_in[31:16] == 16'hAB41) begin
                     enable_proc <= 1'b1;
                 end else 
@@ -162,12 +162,16 @@ module user_proj_example #(
 
             read_mode: begin
                 master_ena_proc <= 1'b0;
-
+				if (la_data_in[32:16] == 16'hAB10)
+					updateRegs <= 1'b1;
+				else
+					updateRegs <= 1'b0;
             end
             default: begin
                 master_ena_proc <= 1'b0;
                 enable_write <= 1'b0;
                 enable_proc <= 1'b0;
+				updateRegs <= 1'b0;
             end
         endcase
     end
@@ -201,7 +205,6 @@ module user_proj_example #(
                     reg_wout    <= 0;
                     reg_zout    <= 0;
 
-					read_done <= 1'b0;
 					la_data_out[127:122] <= 6'b010000; 
 
 				end 
@@ -279,13 +282,6 @@ module user_proj_example #(
 								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
 							end
 
-							8'h10: begin
-								if (updateRegs)
-									read_done <= 1'b1;
-								else
-									read_done <= 1'b0;
-							end
-
 							default: begin
                                 la_data_out[113:32] 	<= reg_wout[162:81]; 
                                 la_data_out[127:114]	<= 14'b11000100000000;
@@ -307,7 +303,6 @@ module user_proj_example #(
                     reg_wout    <= 0;
                     reg_zout    <= 0;
                     
-					read_done <= 1'b0;
 					la_data_out[127:122] <= 6'b010000; 
 				end
 			endcase

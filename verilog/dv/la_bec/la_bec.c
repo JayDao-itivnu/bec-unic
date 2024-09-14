@@ -23,7 +23,7 @@
 void main()
 {
 	int j;
-	uint32_t reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5, cpuStatus;
+	uint32_t reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;
 
 	reg_mprj_io_31 = GPIO_MODE_MGMT_STD_OUTPUT;
 	reg_mprj_io_30 = GPIO_MODE_MGMT_STD_OUTPUT;
@@ -75,20 +75,18 @@ void main()
 
 	// Flag start of the test 
 	reg_mprj_datal	=	reg_la0_data = 0xAB300000;
-	cpuStatus = 0x00000000; 	// Processor is ready
 
 	for (uint32_t i = 0; i< 2; i++){
 		reg_la0_data = 0xAB30FFFF;
 		while ((reg_la3_data_in & 0xFF000000) != 0x78000000) {
 			// Write Process from Processor to BEC core (la3[31:30] = "01")
-			cpuStatus = 0x0000FFFF;
 			reg_mprj_datal = 0xAB410000 ^ (i << 8);
 			write_data(i);
 			// break;
 		}
 		while (reg_la3_data_in != 0x9C000000) {
 			// Hold BEC wait until jump to `Proc` state
-			reg_la0_data 	=	0xAB410000 ^ cpuStatus;
+			reg_la0_data 	=	0xAB410000;
 		}
 
 		while (reg_la3_data_in  == 0x9C000000) {
@@ -108,7 +106,7 @@ void main()
 		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data();
 		
 		while (1){
-			reg_la0_data = 0xAB500000 ^ cpuStatus;
+			reg_la0_data = 0xAB500000;
 			if (reg_wout_1 == w1[1]){
 				reg_mprj_datal = 0xAB430000 ^ (i << 8);
 			} else {
@@ -118,10 +116,10 @@ void main()
 		}
 		while (reg_la3_data_in ^ 0xFF000000 == 0xC400000) {
 			reg_la0_data = 0xAB500000;
-			if (reg_la3_data_in == 0x40000002)
-				break;
+			// if (reg_la3_data_in == 0x40000000)
+			break;
 		}
 		// reg_mprj_datal = 0xAB510000;
 	}
-	reg_mprj_datal = 0xAB510000;
+	reg_mprj_datal = 0xABFF0000;
 }

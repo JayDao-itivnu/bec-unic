@@ -34,7 +34,7 @@
  *
  *-------------------------------------------------------------
  */
-`include "../../../verilog/rtl/counter.v"
+`include "../../../verilog/rtl/sm_bec_v3.v"
 
 module user_proj_example #(
 	parameter BITS = 16
@@ -83,10 +83,20 @@ module user_proj_example #(
     /*
     Nơi khai báo tên instantaneous và nối các chân của khối BEC.
     */
-	counter bec_core (
+	sm_bec_v3 bec_core (
 		.clk(clk),
-		.reset(rst),
-		.enb(master_ena_proc),
+		.rst(rst),
+		.enable(master_ena_proc),
+        .w1(reg_w1),
+        .z1(reg_z1),
+        .w2(reg_w2),
+        .z2(reg_z2),
+        .ki(reg_ki),
+        .d(reg_d),
+        .inv_w0(reg_inv_w0),
+        .next_key(reg_key),
+        .wout(reg_wout),
+        .zout(reg_zout),
 		.done(slv_done)
 	);
 	

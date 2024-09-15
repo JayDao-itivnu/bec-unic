@@ -205,7 +205,7 @@ module user_proj_example #(
                     reg_wout    <= 0;
                     reg_zout    <= 0;
 
-					la_data_out[127:122] <= 6'b010000; 
+					la_data_out[127:122] <= 6'b001100; 
 
 				end 
 
@@ -303,7 +303,7 @@ module user_proj_example #(
                     reg_wout    <= 0;
                     reg_zout    <= 0;
                     
-					la_data_out[127:122] <= 6'b010000; 
+					la_data_out[127:122] <= 6'b001100; 
 				end
 			endcase
 		end

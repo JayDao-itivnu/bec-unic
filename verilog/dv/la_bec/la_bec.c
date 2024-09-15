@@ -65,25 +65,23 @@ void main()
 	// Now, apply the configuration
 	reg_mprj_xfer = 1;
 	while (reg_mprj_xfer == 1);
-
-	// Configure LA probes 2, 1, and 0 [95:0] as outputs from the cpu 
-	// Configure LA probes 3 [127:96] as inputs to the cpu
-	reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;    // [31:0]
-	reg_la1_oenb = reg_la1_iena = 0xFFFFFFFF;    // [63:32]
-	reg_la2_oenb = reg_la2_iena = 0xFFFFFFFF;    // [95:64]
-	reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
-
+	
 	// Flag start of the test 
 	reg_mprj_datal	=	reg_la0_data = 0xAB300000;
 
 	for (uint32_t i = 0; i< 2; i++){
 		reg_la0_data = 0xAB30FFFF;
-		while ((reg_la3_data_in & 0xFF000000) != 0x78000000) {
-			// Write Process from Processor to BEC core (la3[31:30] = "01")
-			reg_mprj_datal = 0xAB410000 ^ (i << 8);
-			write_data(i);
-			// break;
-		}
+		// Configure LA probes 2, 1, and 0 [95:0] as outputs from the cpu 
+		// Configure LA probes 3 [127:96] as inputs to the cpu
+		reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;    // [31:0]
+		reg_la1_oenb = reg_la1_iena = 0xFFFFFFFF;    // [63:32]
+		reg_la2_oenb = reg_la2_iena = 0xFFFFFFFF;    // [95:64]
+		reg_la3_oenb = reg_la3_iena = 0x00000000;    // [127:96]
+		// Write Process from Processor to BEC core (la3[31:30] = "01")
+		reg_mprj_datal = 0xAB410000 ^ (i << 8);
+		write_data(i);
+		// break;
+		
 		while (reg_la3_data_in != 0x9C000000) {
 			// Hold BEC wait until jump to `Proc` state
 			reg_la0_data 	=	0xAB410000;

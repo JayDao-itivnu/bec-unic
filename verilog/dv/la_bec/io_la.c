@@ -1,6 +1,7 @@
+// #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_spec.h>
+// #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
 #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_spec.h>
-#include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
-
+// #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
 static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
 	//  Configure BEC Status Notifications [127:122]
 	// Next 4-bits of addresses inside BEC core
@@ -40,7 +41,7 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 	} else if (BecStatus == 0x2C000000) {
 		// la3_data_in[29:26] = "1011" --- d(low)
 		becAddres = 0x3FFC0000;
-	} else if (BecStatus == 0x30000000) {
+	} else if (BecStatus == 0x30000000 | reg_la3_data_in == 0x3000000) {
 		// la3_data_in[29:26] = "1100" --- key(high)
 		becAddres = 0x7FFC0000;
 	} else if (BecStatus == 0x34000000) {
@@ -50,10 +51,12 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 		// la3_data_in[29:26] = "0001" --- w0(high)
 		becAddres = 0x00040000;	
 	}
-	reg_la2_data = 0;
-	reg_la0_data = data_reg2;
-	reg_la1_data = data_reg1;
+	// reg_la2_data = 0;
 	reg_la2_data = becAddres ^ data_reg0;
+	reg_la1_data = data_reg1;
+	reg_la0_data = data_reg2;
+	// reg_la1_data = data_reg1;
+	// reg_la2_data = becAddres ^ data_reg0;
 }
 
 static uint32_t write_data (int i) {
@@ -83,11 +86,13 @@ static uint32_t write_data (int i) {
 		write_la(reg_la3_data_in, d[0], d[1], d[2]);
 		write_la(reg_la3_data_in, d[3], d[4], d[5]);
 		// Writing key register
-		write_la(reg_la3_data_in, k_array[0], k_array[1], k_array[2]);
-		write_la(reg_la3_data_in, k_array[3], k_array[4], k_array[5]);
+		write_la(reg_la3_data_in, k_array[0][0], k_array[0][1], k_array[0][2]);
+		write_la(reg_la3_data_in, k_array[0][3], k_array[0][4], k_array[0][5]);
+		break;
 	} else {
-		write_la(reg_la3_data_in, k_array[i*3 + 0], k_array[i*3 + 1], k_array[i*3 + 2]);
-		write_la(reg_la3_data_in, k_array[i*3 + 3], k_array[i*3 + 4], k_array[i*3 + 5]);
+		write_la(reg_la3_data_in, k_array[i][0], k_array[i][1], k_array[i][2]);
+		write_la(reg_la3_data_in, k_array[i][3], k_array[i][4], k_array[i][5]);
+		// break;
 		}
 	}
 }

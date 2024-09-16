@@ -65,8 +65,9 @@ module user_proj_example #(
 	reg [162:0] buffer_w1, buffer_z1, buffer_w2, buffer_z2, buffer_inv_w0, buffer_d, buffer_key;
     reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
     reg [162:0] reg_wout, reg_zout;
-    reg reg_ki;
 
+	wire [162:0] wout, zout;
+	wire next_key;
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
@@ -91,12 +92,12 @@ module user_proj_example #(
         .z1(reg_z1),
         .w2(reg_w2),
         .z2(reg_z2),
-        .ki(reg_ki),
+        .ki(reg_key[0]),
         .d(reg_d),
         .inv_w0(reg_inv_w0),
-        .next_key(reg_key),
-        .wout(reg_wout),
-        .zout(reg_zout),
+        .next_key(next_key),
+        .wout(wout),
+        .zout(zout),
 		.done(slv_done)
 	);
 	
@@ -195,7 +196,6 @@ module user_proj_example #(
 			reg_inv_w0  <= 0;
 			reg_d       <= 0;
 			reg_key     <= 0;
-            reg_ki      <= 0;
 			la_data_out <= {(128){1'b0}};
             
 			enable_proc <= 1'b0;
@@ -210,7 +210,6 @@ module user_proj_example #(
                     reg_inv_w0  <= 0;
                     reg_d       <= 0;
                     reg_key     <= 0;
-                    reg_ki      <= 0;
 					
                     reg_wout    <= 0;
                     reg_zout    <= 0;
@@ -268,9 +267,14 @@ module user_proj_example #(
 				proc: begin
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
-                    // if (next_key) begin
-                    //     reg_key <= reg_key >> 1;
-                    // end
+                    if (next_key) begin
+                        reg_key <= reg_key >> 1;
+                    end
+
+					if (slv_done) begin
+						reg_wout <= wout;
+						reg_zout <= zout;
+					end	
 				end
 
 				read_mode: begin
@@ -308,7 +312,6 @@ module user_proj_example #(
                     reg_inv_w0  <= 0;
                     reg_d       <= 0;
                     reg_key     <= 0;
-                    reg_ki      <= 0;
 					
                     reg_wout    <= 0;
                     reg_zout    <= 0;

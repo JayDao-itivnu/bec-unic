@@ -223,7 +223,7 @@ module user_proj_example #(
 						reg_w1[162:82] 	<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0001; 	//0x04
 					end else if (la_data_in[95:82] == 14'b00000000000011) begin
-						reg_w1[81:0] 		<= la_data_in[81:1];
+						reg_w1[81:0] 		<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0010;	//0x08
 					end else if (la_data_in[95:82] == 14'b00000000000111) begin
 						reg_z1[162:82] 	<= la_data_in[81:0];

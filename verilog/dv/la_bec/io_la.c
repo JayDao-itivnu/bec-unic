@@ -52,9 +52,10 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 		becAddres = 0x00040000;	
 	}
 	// reg_la2_data = 0;
-	reg_la2_data = becAddres ^ data_reg0;
 	reg_la1_data = data_reg1;
 	reg_la0_data = data_reg2;
+	reg_la2_data = becAddres ^ data_reg0;
+
 	// reg_la1_data = data_reg1;
 	// reg_la2_data = becAddres ^ data_reg0;
 }

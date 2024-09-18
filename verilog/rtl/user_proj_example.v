@@ -35,15 +35,15 @@
  *-------------------------------------------------------------
  */
 `include "../../../verilog/rtl/sm_bec_v3.v"
-
+// `include "../../../verilog/rtl/counter.v"
 module user_proj_example #(
 	parameter BITS = 16
 )(
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
-    inout vccd2,	// User area 2 1.8v supply
-    inout vssd1,	// User area 1 digital ground
-    inout vssd2,	// User area 2 digital ground
+	inout vccd2,	// User area 2 1.8v supply
+	inout vssd1,	// User area 1 digital ground
+	inout vssd2,	// User area 2 digital ground
 `endif
 
 	// // Wishbone Slave ports (WB MI A)
@@ -63,8 +63,8 @@ module user_proj_example #(
 	parameter DELAY = 2000;
 
 	reg [162:0] buffer_w1, buffer_z1, buffer_w2, buffer_z2, buffer_inv_w0, buffer_d, buffer_key;
-    reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
-    reg [162:0] reg_wout, reg_zout;
+	reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
+	reg [162:0] reg_wout, reg_zout;
 
 	wire [162:0] wout, zout;
 	wire next_key;
@@ -81,25 +81,32 @@ module user_proj_example #(
 	
 	// assign slv_done = (current_state == 2'b11) ? 1'b1 : 1'b0;
 
-    /*
-    Nơi khai báo tên instantaneous và nối các chân của khối BEC.
-    */
+	/*
+	Nơi khai báo tên instantaneous và nối các chân của khối BEC.
+	*/
 	sm_bec_v3 bec_core (
 		.clk(clk),
 		.rst(rst),
 		.enable(master_ena_proc),
-        .w1(reg_w1),
-        .z1(reg_z1),
-        .w2(reg_w2),
-        .z2(reg_z2),
-        .ki(reg_key[0]),
-        .d(reg_d),
-        .inv_w0(reg_inv_w0),
-        .next_key(next_key),
-        .wout(wout),
-        .zout(zout),
+		.w1(reg_w1),
+		.z1(reg_z1),
+		.w2(reg_w2),
+		.z2(reg_z2),
+		.ki(reg_key[0]),
+		.d(reg_d),
+		.inv_w0(reg_inv_w0),
+		.next_key(next_key),
+		.wout(wout),
+		.zout(zout),
 		.done(slv_done)
 	);
+
+	// counter fifo (
+	// 	.clk (clk),
+	// 	.reset (rst),
+	// 	.enb (master_ena_proc),
+	// 	.done (slv_done)
+	// );
 	
 	always @(posedge clk or rst) begin
 		if (rst) 
@@ -147,45 +154,45 @@ module user_proj_example #(
 		endcase
 	end
 
-    always @(*) begin
-        case (current_state)
-            idle: begin
-                enable_proc <= 1'b0;
+	always @(*) begin
+		case (current_state)
+			idle: begin
+				enable_proc <= 1'b0;
 				updateRegs <= 1'b0;
-                if (la_data_in[31:16] == 16'hAB30) begin
-                    enable_write <= 1'b1;
-                end else 
-                    enable_write <= 1'b0;
-            end 
+				if (la_data_in[31:16] == 16'hAB30) begin
+					enable_write <= 1'b1;
+				end else 
+					enable_write <= 1'b0;
+			end 
 
-            write_mode: begin
+			write_mode: begin
 				updateRegs <= 1'b0;
-                if (la_data_in[31:16] == 16'hAB41) begin
-                    enable_proc <= 1'b1;
-                end else 
-                    enable_proc <= 1'b0;
-            end
+				if (la_data_in[31:16] == 16'hAB41) begin
+					enable_proc <= 1'b1;
+				end else 
+					enable_proc <= 1'b0;
+			end
 
-            proc: begin
-                enable_write <= 1'b0;
-                master_ena_proc <= 1'b1;
-            end
+			proc: begin
+				enable_write <= 1'b0;
+				master_ena_proc <= 1'b1;
+			end
 
-            read_mode: begin
-                master_ena_proc <= 1'b0;
+			read_mode: begin
+				master_ena_proc <= 1'b0;
 				if (la_data_in[32:16] == 16'hAB10)
 					updateRegs <= 1'b1;
 				else
 					updateRegs <= 1'b0;
-            end
-            default: begin
-                master_ena_proc <= 1'b0;
-                enable_write <= 1'b0;
-                enable_proc <= 1'b0;
+			end
+			default: begin
+				master_ena_proc <= 1'b0;
+				enable_write <= 1'b0;
+				enable_proc <= 1'b0;
 				updateRegs <= 1'b0;
-            end
-        endcase
-    end
+			end
+		endcase
+	end
 
 	always @(posedge clk or rst) begin
 		if (rst) begin
@@ -197,22 +204,22 @@ module user_proj_example #(
 			reg_d       <= 0;
 			reg_key     <= 0;
 			la_data_out <= {(128){1'b0}};
-            
+			
 			enable_proc <= 1'b0;
 			enable_write <= 1'b0;
 		end else begin
 			case (current_state)
 				idle: begin
 					reg_w1      <= 0;
-                    reg_z1      <= 0;
-                    reg_w2      <= 0;
-                    reg_z2      <= 0;
-                    reg_inv_w0  <= 0;
-                    reg_d       <= 0;
-                    reg_key     <= 0;
+					reg_z1      <= 0;
+					reg_w2      <= 0;
+					reg_z2      <= 0;
+					reg_inv_w0  <= 0;
+					reg_d       <= 0;
+					reg_key     <= 0;
 					
-                    reg_wout    <= 0;
-                    reg_zout    <= 0;
+					reg_wout    <= 0;
+					reg_zout    <= 0;
 
 					la_data_out[127:122] <= 6'b001100; 
 
@@ -267,9 +274,9 @@ module user_proj_example #(
 				proc: begin
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
-                    if (next_key) begin
-                        reg_key <= reg_key >> 1;
-                    end
+					if (next_key) begin
+						reg_key <= reg_key >> 1;
+					end
 
 					if (slv_done) begin
 						reg_wout <= wout;
@@ -297,25 +304,25 @@ module user_proj_example #(
 							end
 
 							default: begin
-                                la_data_out[113:32] 	<= reg_wout[162:81]; 
-                                la_data_out[127:114]	<= 14'b11000100000000;
-                            end
+								la_data_out[113:32] 	<= reg_wout[162:81]; 
+								la_data_out[127:114]	<= 14'b11000100000000;
+							end
 						endcase
 					end
 				end
 				
 				default: begin
 					reg_w1      <= 0;
-                    reg_z1      <= 0;
-                    reg_w2      <= 0;
-                    reg_z2      <= 0;
-                    reg_inv_w0  <= 0;
-                    reg_d       <= 0;
-                    reg_key     <= 0;
+					reg_z1      <= 0;
+					reg_w2      <= 0;
+					reg_z2      <= 0;
+					reg_inv_w0  <= 0;
+					reg_d       <= 0;
+					reg_key     <= 0;
 					
-                    reg_wout    <= 0;
-                    reg_zout    <= 0;
-                    
+					reg_wout    <= 0;
+					reg_zout    <= 0;
+					
 					la_data_out[127:122] <= 6'b001100; 
 				end
 			endcase

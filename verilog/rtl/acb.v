@@ -14,9 +14,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // `default_nettype none
-
-// `include "classic_squarer.v"
-// `include "interleaved_mult.v"
+`include "../../../verilog/rtl/classic_squarer.v"
+`include "../../../verilog/rtl/interleaved_mult.v"
 
 module acb (clk, rst, enable, configuration, A, B, C, done);
     input clk, rst, enable, configuration;

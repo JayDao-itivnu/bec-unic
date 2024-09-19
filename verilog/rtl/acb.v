@@ -13,24 +13,19 @@
 // limitations under the License.
 // SPDX-License-Identifier: Apache-2.0
 
-`default_nettype none
+// `default_nettype none
 
-`include "../../../verilog/rtl/classic_squarer.v"
-`include "../../../verilog/rtl/interleaved_mult.v"
+// `include "classic_squarer.v"
+// `include "interleaved_mult.v"
 
-module acb (
-    input clk,
-    input rst,
-    input enable,
-    input configuration,
+module acb (clk, rst, enable, configuration, A, B, C, done);
+    input clk, rst, enable, configuration;
+    input [162:0] A, B;
 
-    input [162:0] A,
-    input [162:0] B,
+    output wire [162:0] C;
 
-    output wire [162:0] C,
+    output wire done;
 
-    output wire done
-);
     wire [162:0] z_tmp, c_tmp;
     assign C = (~configuration) ? c_tmp : z_tmp; 
 

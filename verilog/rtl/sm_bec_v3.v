@@ -13,7 +13,6 @@
 // limitations under the License.
 // SPDX-License-Identifier: Apache-2.0
 
-`include "../../../verilog/rtl/acb.v"
 
 module sm_bec_v3 (
 	input clk,
@@ -41,7 +40,8 @@ module sm_bec_v3 (
 	reg [162:0] regA, regB, regC, regD;
 	reg [7:0] reg_key_iter;
 	reg configuration, local_enable;
-	reg [162:0] inACB_1, inACB_2, outACB;
+	reg [162:0] inACB_1, inACB_2;
+	wire [162:0] outACB;
 	wire done_loop, next_round;
 
 	assign next_key = done_loop;
@@ -57,6 +57,7 @@ module sm_bec_v3 (
 		.enable(local_enable),
 		.A(inACB_1),
 		.B(inACB_2),
+		.C(outACB),
 		.configuration(configuration),
 		.done(next_round)
 	);
@@ -68,7 +69,7 @@ module sm_bec_v3 (
 			current_state <= next_state;
 	end
 
-	always @(enable or next_round) begin
+	always @(*) begin
 		if (enable) begin
 			case (current_state)
 				idle:   if (next_round) 
@@ -199,12 +200,28 @@ module sm_bec_v3 (
 						end
 					end
 
+					default: begin
+						if (reg_key_iter == 0) begin
+							if (ki) begin
+								regA <= outACB;
+								regB <= z1;
+								regC <= w2;
+								regD <= z2;
+							end else begin
+								regA <= w1;
+								regB <= z1;
+								regC <= outACB;
+								regD <= z2;
+							end
+						end else begin
+							if (ki) begin
+								regA <= outACB;
+							end else begin
+								regC <= outACB;
+							end
+						end
+					end
 				endcase
-			end else begin
-				regA <= 0;
-				regB <= 0;
-				regC <= 0;
-				regD <= 0;
 			end
 
 			if (local_enable) begin
@@ -226,7 +243,7 @@ module sm_bec_v3 (
 							end else begin
                                 inACB_1 <= regC;
                                 inACB_2 <= regB;
-                            end;
+                            end
 						end
 					end 
 
@@ -237,7 +254,7 @@ module sm_bec_v3 (
 						end else begin
                             inACB_1 <= regA;
                             inACB_2 <= regD;
-                        end;
+                        end
 					end
 
 					st2: begin
@@ -252,7 +269,7 @@ module sm_bec_v3 (
                             inACB_2 <= regA;
 						end else begin
                             inACB_2 <= regC;
-                        end;
+                        end
 					end
 
 					st4: begin
@@ -263,7 +280,7 @@ module sm_bec_v3 (
 						end else begin
                             inACB_1 <= regA;
                             inACB_2 <= regA ^ regB;
-                        end;
+                        end
 					end
 
 					st5: begin
@@ -273,7 +290,7 @@ module sm_bec_v3 (
 						end else begin
                             inACB_1 <= regB;
                             inACB_2 <= regB;
-                        end;
+                        end
 					end
 
 					st6: begin
@@ -283,12 +300,13 @@ module sm_bec_v3 (
                             inACB_2 <= regD;
 						end else begin
                             inACB_2 <= regB;
-                        end;
+                        end
 					end
 
 					default: begin
 						inACB_1 <= 0;
                         inACB_2 <= 0;
+						configuration <= 1'b0;
 					end 
 				endcase
 			end else begin
@@ -303,10 +321,10 @@ module sm_bec_v3 (
                         reg_key_iter <= reg_key_iter + 1;
 					end else begin
                         reg_key_iter <= 0;
-                    end;
+                    end
 				end else begin
                     reg_key_iter <= reg_key_iter;
-                end;
+                end
 			end else begin
 				local_enable <= 0;
                 reg_key_iter <= 0;

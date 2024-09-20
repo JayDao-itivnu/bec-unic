@@ -61,7 +61,7 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 }
 
 static uint32_t write_data (int i) {
-  while (reg_la3_data_in != 0x78000000) {
+  while ((reg_la3_data_in & 0xFF000000 )!= 0x78000000) {
 	if (i == 0) {
 		// Writing w1 register
 		write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);

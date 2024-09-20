@@ -142,7 +142,7 @@ module la_bec_tb;
 		$dumpvars(0, la_bec_tb);
 
 		// Repeat cycles of 1000 clock edges as needed to complete testbench
-		repeat (50) begin
+		repeat (2000) begin
 			repeat (1000) @(posedge clock);
 			// $display("+1000 cycles");
 		end

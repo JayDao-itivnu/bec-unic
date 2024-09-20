@@ -84,6 +84,8 @@ void main()
 		
 		while (reg_la3_data_in != 0x9C000000) {
 			// Hold BEC wait until jump to `Proc` state
+			reg_la2_data	= 	0x00000000;
+			reg_la1_data	=	0x00000000;
 			reg_la0_data 	=	0xAB410000;
 		}
 

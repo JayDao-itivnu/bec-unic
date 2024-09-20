@@ -2,13 +2,13 @@
 // #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
 #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_spec.h>
 // #include <../../../verilog/dv/la_bec/sm_bec_v3_randomKey_txt.h>
-static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
+static uint32_t write_la(int i, uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg1, uint32_t data_reg2) {
 	//  Configure BEC Status Notifications [127:122]
 	// Next 4-bits of addresses inside BEC core
 	// First 2-bits of FSM status inside BEC core    
 	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
 	uint32_t becAddres;
-	if (BecStatus == 0x04000000) {
+	if ((BecStatus == 0x04000000) & (i == 0)) {
 		// la3_data_in[29:26] = "0001" --- w1(low)
 		becAddres = 0x000C0000;
 	} else if (BecStatus == 0x08000000) {
@@ -41,7 +41,7 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 	} else if (BecStatus == 0x2C000000) {
 		// la3_data_in[29:26] = "1011" --- d(low)
 		becAddres = 0x3FFC0000;
-	} else if (BecStatus == 0x30000000 | reg_la3_data_in == 0x3000000) {
+	} else if (BecStatus == 0x30000000 | ((BecStatus == 0x00000000) & (i != 0))) {
 		// la3_data_in[29:26] = "1100" --- key(high)
 		becAddres = 0x7FFC0000;
 	} else if (BecStatus == 0x34000000) {
@@ -51,7 +51,7 @@ static uint32_t write_la(uint32_t wStatus, uint32_t data_reg0, uint32_t data_reg
 		// la3_data_in[29:26] = "0001" --- w0(high)
 		becAddres = 0x00040000;	
 	}
-	// reg_la2_data = 0;
+	reg_la2_data = 0;
 	reg_la1_data = data_reg1;
 	reg_la0_data = data_reg2;
 	reg_la2_data = becAddres ^ data_reg0;
@@ -64,35 +64,35 @@ static uint32_t write_data (int i) {
   while ((reg_la3_data_in & 0xFF000000 )!= 0x78000000) {
 	if (i == 0) {
 		// Writing w1 register
-		write_la(reg_la3_data_in, w1[0], w1[1], w1[2]);
-		write_la(reg_la3_data_in, w1[3], w1[4], w1[5]);
+		write_la(0, reg_la3_data_in, w1[0], w1[1], w1[2]);
+		write_la(0, reg_la3_data_in, w1[3], w1[4], w1[5]);
 
 		// Writing z1 register
-		write_la(reg_la3_data_in, z1[0], z1[1], z1[2]);
-		write_la(reg_la3_data_in, z1[3], z1[4], z1[5]);
+		write_la(0, reg_la3_data_in, z1[0], z1[1], z1[2]);
+		write_la(0, reg_la3_data_in, z1[3], z1[4], z1[5]);
 
 		// Writing w2 register
-		write_la(reg_la3_data_in, w2[0], w2[1], w2[2]);
-		write_la(reg_la3_data_in, w2[3], w2[4], w2[5]);
+		write_la(0, reg_la3_data_in, w2[0], w2[1], w2[2]);
+		write_la(0, reg_la3_data_in, w2[3], w2[4], w2[5]);
 
 		// Writing z2 register
-		write_la(reg_la3_data_in, z2[0], z2[1], z2[2]);
-		write_la(reg_la3_data_in, z2[3], z2[4], z2[5]);
+		write_la(0, reg_la3_data_in, z2[0], z2[1], z2[2]);
+		write_la(0, reg_la3_data_in, z2[3], z2[4], z2[5]);
 
 		// Writing inv_w0 register
-		write_la(reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
-		write_la(reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
+		write_la(0, reg_la3_data_in, inv_w0[0], inv_w0[1], inv_w0[2]);
+		write_la(0, reg_la3_data_in, inv_w0[3], inv_w0[4], inv_w0[5]);
 
 		// Writing d register
-		write_la(reg_la3_data_in, d[0], d[1], d[2]);
-		write_la(reg_la3_data_in, d[3], d[4], d[5]);
+		write_la(0, reg_la3_data_in, d[0], d[1], d[2]);
+		write_la(0, reg_la3_data_in, d[3], d[4], d[5]);
 		// Writing key register
-		write_la(reg_la3_data_in, k_array[0][0], k_array[0][1], k_array[0][2]);
-		write_la(reg_la3_data_in, k_array[0][3], k_array[0][4], k_array[0][5]);
+		write_la(0, reg_la3_data_in, k_array[0][0], k_array[0][1], k_array[0][2]);
+		write_la(0, reg_la3_data_in, k_array[0][3], k_array[0][4], k_array[0][5]);
 		break;
 	} else {
-		write_la(reg_la3_data_in, k_array[i][0], k_array[i][1], k_array[i][2]);
-		write_la(reg_la3_data_in, k_array[i][3], k_array[i][4], k_array[i][5]);
+		write_la(i, reg_la3_data_in, k_array[i][0], k_array[i][1], k_array[i][2]);
+		write_la(i, reg_la3_data_in, k_array[i][3], k_array[i][4], k_array[i][5]);
 		// break;
 		}
 	}

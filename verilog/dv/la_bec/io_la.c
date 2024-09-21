@@ -103,26 +103,26 @@ static uint32_t read_data () {
 	uint32_t reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5;
 	while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
 		if ((reg_la3_data_in & 0xFF000000) == 0xC8000000) {
-			reg_wout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_3 = reg_la3_data_in & 0x0001FFFF;			// Take 81 bits
 			reg_wout_4 = reg_la2_data_in;
 			reg_wout_5 = reg_la1_data_in;
 
 			reg_la0_data = 0xAB080000;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
-			reg_zout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_0 = reg_la3_data_in & 0x0003FFFF;
 			reg_zout_1 = reg_la2_data_in;
 			reg_zout_2 = reg_la1_data_in;
 
 			reg_la0_data = 0xAB0C0000;
 		} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
-			reg_zout_3 = reg_la3_data_in & 0x03FFFFFF;
+			reg_zout_3 = reg_la3_data_in & 0x0001FFFF;			// Take 81 bits
 			reg_zout_4 = reg_la2_data_in;
 			reg_zout_5 = reg_la1_data_in;
 
 			reg_la0_data = 0xAB100000;
 			break;
 		} else {
-			reg_wout_0 = reg_la3_data_in & 0x03FFFFFF;
+			reg_wout_0 = reg_la3_data_in & 0x0003FFFF;
 			reg_wout_1 = reg_la2_data_in;
 			reg_wout_2 = reg_la1_data_in;
 			

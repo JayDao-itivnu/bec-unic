@@ -103,14 +103,45 @@ void main()
 		}
 		reg_mprj_datal = 0xAB510000 ^ (i << 8);
 		
-		reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data();
+		// reg_wout_0, reg_wout_1, reg_wout_2, reg_wout_3, reg_wout_4, reg_wout_5, reg_zout_0, reg_zout_1, reg_zout_2, reg_zout_3, reg_zout_4, reg_zout_5 = read_data();
 		
+		while ((reg_la3_data_in & 0xC0000000) == 0xC0000000) {
+			if ((reg_la3_data_in & 0xFF000000) == 0xC8000000) {
+				reg_wout_3 = reg_la3_data_in & 0x0003FFFF;			// Take 81 bits
+				reg_wout_4 = reg_la2_data_in;
+				reg_wout_5 = reg_la1_data_in;
+
+				reg_la0_data = 0xAB080000;
+			} else if ((reg_la3_data_in & 0xFF000000) == 0xCC000000) {
+				reg_zout_0 = reg_la3_data_in & 0x0001FFFF;
+				reg_zout_1 = reg_la2_data_in;
+				reg_zout_2 = reg_la1_data_in;
+
+				reg_la0_data = 0xAB0C0000;
+			} else if ((reg_la3_data_in & 0xFF000000) == 0xD0000000) {
+				reg_zout_3 = reg_la3_data_in & 0x0003FFFF;			// Take 81 bits
+				reg_zout_4 = reg_la2_data_in;
+				reg_zout_5 = reg_la1_data_in;
+
+				reg_la0_data = 0xAB100000;
+				break;
+			} else {
+				reg_wout_0 = reg_la3_data_in & 0x0001FFFF;
+				reg_wout_1 = reg_la2_data_in;
+				reg_wout_2 = reg_la1_data_in;
+				
+				reg_la0_data = 0xAB040000;
+			}
+		}
+
 		while (1){
 			reg_la0_data = 0xAB500000;
-			if (reg_wout_1 == w1[1]){
+			if ((reg_wout_0 == wA_array[i][0]) & (reg_wout_1 == wA_array[i][1]) & (reg_wout_2 == wA_array[i][2]) & (reg_wout_3 == wA_array[i][3]) & (reg_wout_4 == wA_array[i][4]) & (reg_wout_5 == wA_array[i][5])){
 				reg_mprj_datal = 0xAB430000 ^ (i << 8);
+				reg_la0_data = reg_wout_0;
 			} else {
 				reg_mprj_datal = 0xAB440000 ^ (i << 8);
+				reg_la0_data = reg_wout_0;
 			}
 			break;
 		}

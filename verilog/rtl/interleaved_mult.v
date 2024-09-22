@@ -56,7 +56,7 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 	wire [162:0] regA;
 	reg count_done;
 
-	assign Z = regC;
+	assign Z = (current_state == ST_DONE) ? regC : Z;
 	
 	reg [1:0] current_state, next_state;
 	parameter IDLE = 2'b00, LOAD = 2'b01, SHIFT = 2'b10, ST_DONE =2'b11;

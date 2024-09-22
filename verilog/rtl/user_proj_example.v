@@ -175,7 +175,10 @@ module user_proj_example #(
 
 			proc: begin
 				enable_write <= 1'b0;
-				master_ena_proc <= 1'b1;
+				if (~slv_done)
+					master_ena_proc <= 1'b1;
+				else
+					master_ena_proc <= 1'b0;
 			end
 
 			read_mode: begin

@@ -34,7 +34,7 @@
  *
  *-------------------------------------------------------------
  */
-`include "../../../verilog/rtl/sm_bec_v3.v"
+// `include "../../../verilog/rtl/sm_bec_v3.v"
 // `include "../../../verilog/rtl/counter.v"
 module user_proj_example #(
 	parameter BITS = 16
@@ -101,14 +101,8 @@ module user_proj_example #(
 		.done(slv_done)
 	);
 
-	// counter fifo (
-	// 	.clk (clk),
-	// 	.reset (rst),
-	// 	.enb (master_ena_proc),
-	// 	.done (slv_done)
-	// );
 	
-	always @(posedge clk or rst) begin
+	always @(posedge clk or posedge rst) begin
 		if (rst) 
 			current_state <= idle;
 		else
@@ -197,7 +191,7 @@ module user_proj_example #(
 		endcase
 	end
 
-	always @(posedge clk or rst) begin
+	always @(posedge clk or posedge rst) begin
 		if (rst) begin
 			reg_w1      <= 0;
 			reg_z1      <= 0;
@@ -207,9 +201,7 @@ module user_proj_example #(
 			reg_d       <= 0;
 			reg_key     <= 0;
 			la_data_out <= {(128){1'b0}};
-			
-			enable_proc <= 1'b0;
-			enable_write <= 1'b0;
+	
 		end else begin
 			case (current_state)
 				idle: begin
@@ -284,7 +276,7 @@ module user_proj_example #(
 				end
 
 				read_mode: begin
-					enable_write <= 1'h0;
+					// enable_write <= 1'h0;
 					if (la_data_in[31:24] == 8'hAB) begin
 						case (la_data_in[23:16]) 
 							8'h04: begin

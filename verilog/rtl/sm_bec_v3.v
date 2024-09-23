@@ -16,6 +16,11 @@
 //`include "../../../verilog/rtl/acb.v"
 
 module sm_bec_v3 (
+`ifdef USE_POWER_PINS
+	inout vccd2,	// User area 2 1.8v supply
+	inout vssd2,	// User area 2 digital ground
+`endif
+
 	input clk,
 	input rst, 
 	input enable,
@@ -53,6 +58,11 @@ module sm_bec_v3 (
 	// assign configuration = ((current_state == st3) ^ (current_state == st6)) ? 1'b1 : 1'b0;
 
 	acb u1(
+		`ifdef USE_POWER_PINS
+			.vccd2(vccd2),	// User area 2 1.8v supply
+			.vssd2(vssd2),	// User area 2 digital ground
+		`endif
+
 		.clk(clk),
 		.rst(rst),
 		.enable(local_enable),

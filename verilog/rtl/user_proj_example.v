@@ -36,9 +36,7 @@
  */
 // `include "../../../verilog/rtl/sm_bec_v3.v"
 // `include "../../../verilog/rtl/counter.v"
-module user_proj_example #(
-	parameter BITS = 16
-)(
+module user_proj_example (
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
 	inout vccd2,	// User area 2 1.8v supply
@@ -59,10 +57,8 @@ module user_proj_example #(
 	wire rst;
 	reg master_enable, master_load, master_ena_proc, enable_proc, enable_write, updateRegs;
 	wire slv_done;
-	wire [BITS-1:0] la_write;
 	parameter DELAY = 2000;
 
-	reg [162:0] buffer_w1, buffer_z1, buffer_w2, buffer_z2, buffer_inv_w0, buffer_d, buffer_key;
 	reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
 	reg [162:0] reg_wout, reg_zout;
 
@@ -72,8 +68,7 @@ module user_proj_example #(
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
 
-	// Assuming LA probes [63:32] are for controlling the count register  
-	assign la_write = ~la_oenb[63:64-BITS];
+	
 	
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
@@ -85,6 +80,11 @@ module user_proj_example #(
 	Nơi khai báo tên instantaneous và nối các chân của khối BEC.
 	*/
 	sm_bec_v3 bec_core (
+		`ifdef USE_POWER_PINS
+			.vccd2(vccd2),  // User area 2 1.8V power
+			.vssd2(vssd2),  // User area 2 digital ground
+		`endif
+
 		.clk(clk),
 		.rst(rst),
 		.enable(master_ena_proc),

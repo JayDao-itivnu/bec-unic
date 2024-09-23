@@ -4,10 +4,10 @@
     "VERILOG_FILES": [
         "dir::../../verilog/rtl/defines.v",
         "dir::../../verilog/rtl/user_proj_example.v",
-	"dir::../../verilog/rtl/sm_bec_v3.v",
-	"dir::../../verilog/rtl/acb.v",
-	"dir::../../verilog/rtl/interleaved_mult.v",
-	"dir::../../verilog/rtl/classic_squarer.v"
+        "dir::../../verilog/rtl/sm_bec_v3.v",
+        "dir::../../verilog/rtl/acb.v",
+        "dir::../../verilog/rtl/interleaved_mult.v",
+        "dir::../../verilog/rtl/classic_squarer.v"
     ],
     "CLOCK_PERIOD": 25,
     "CLOCK_PORT": "wb_clk_i",
@@ -28,12 +28,10 @@
     "HEURISTIC_ANTENNA_THRESHOLD": 110,    
     "GRT_REPAIR_ANTENNAS": 1,
     "VDD_NETS": [
-        "vccd1",
-	"vccd2"
+        "vccd1"
     ],
     "GND_NETS": [
-        "vssd1",
-	"vssd2"
+        "vssd1"
     ],
     "IO_SYNC": 0,
     "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",

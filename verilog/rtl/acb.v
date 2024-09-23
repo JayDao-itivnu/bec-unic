@@ -17,7 +17,13 @@
 //`include "../../../verilog/rtl/classic_squarer.v"
 //`include "../../../verilog/rtl/interleaved_mult.v"
 
-module acb (clk, rst, enable, configuration, A, B, C, done);
+module acb (
+    `ifdef USE_POWER_PINS
+        inout vccd2,	// User area 2 1.8v supply
+        inout vssd2,	// User area 2 digital ground
+    `endif
+    
+    clk, rst, enable, configuration, A, B, C, done);
     input clk, rst, enable, configuration;
     input [162:0] A, B;
 
@@ -34,6 +40,10 @@ module acb (clk, rst, enable, configuration, A, B, C, done);
     );
 
     interleaved_mult u2 (
+        `ifdef USE_POWER_PINS
+			.vccd2(vccd2),	// User area 2 1.8v supply
+			.vssd2(vssd2),	// User area 2 digital ground
+		`endif
         .A(A),
         .B(B),
         .clk(clk),

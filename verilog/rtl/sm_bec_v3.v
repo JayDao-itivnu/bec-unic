@@ -13,7 +13,7 @@
 // limitations under the License.
 // SPDX-License-Identifier: Apache-2.0
 
-`include "../../../verilog/rtl/acb.v"
+//`include "../../../verilog/rtl/acb.v"
 
 module sm_bec_v3 (
 	input clk,
@@ -63,7 +63,7 @@ module sm_bec_v3 (
 		.done(next_round)
 	);
 
-	always @(posedge clk or rst) begin
+	always @(posedge clk or posedge rst) begin
 		if (rst)
 			current_state <= idle;
 		else 
@@ -114,7 +114,7 @@ module sm_bec_v3 (
 			next_state <= idle;
 	end
 
-	always @(posedge clk or rst) begin
+	always @(posedge clk or posedge rst) begin
 		if (rst) begin
 			regA <= 0;
 			regB <= 0;

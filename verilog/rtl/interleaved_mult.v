@@ -24,7 +24,7 @@ module shift_reg (clk, load, shift_r, rst, A, Z);
    
    assign Z = aa;
 
-   always @(posedge clk or rst) begin
+   always @(posedge clk or posedge rst) begin
 	   if (rst)
 		   aa <= 0;
 	   else if (load)
@@ -47,7 +47,7 @@ endmodule
 module interleaved_mult (clk, rst, start, A, B, Z, done);
 	input  [162:0] A, B;
 	input  clk, rst, start;
-	output wire [162:0] Z;
+	output reg [162:0] Z;
 	output wire done;
 
 	reg load_done, shift_r;
@@ -56,7 +56,8 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 	wire [162:0] regA;
 	reg count_done;
 
-	assign Z = (current_state == ST_DONE) ? regC : Z;
+	//assign Z = (current_state == ST_DONE) ? regC : Z;
+
 	
 	reg [1:0] current_state, next_state;
 	parameter IDLE = 2'b00, LOAD = 2'b01, SHIFT = 2'b10, ST_DONE =2'b11;
@@ -76,6 +77,7 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 			count_done <= 1'b0;
 			regC <= 0;
 			regB <= 0;
+            Z <= 0;
 		end else if (current_state == SHIFT) begin
 			if (count == 163) begin
 				count <= 0;
@@ -94,7 +96,9 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 			regC <= 0;
 			count <= 0;
 			count_done <= 1'b0;
-		end 
+        end else if (current_state == ST_DONE) begin
+                Z <= regC;
+            end
 	end
 
 	//FSM process

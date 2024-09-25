@@ -28,10 +28,12 @@
     "HEURISTIC_ANTENNA_THRESHOLD": 110,    
     "GRT_REPAIR_ANTENNAS": 1,
     "VDD_NETS": [
-        "vccd1"
+        "vccd1",
+        "vccd2"
     ],
     "GND_NETS": [
-        "vssd1"
+        "vssd1",
+        "vssd2"
     ],
     "IO_SYNC": 0,
     "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",

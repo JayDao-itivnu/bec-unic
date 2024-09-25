@@ -23,13 +23,12 @@ module acb (
         inout vssd2,	// User area 2 digital ground
     `endif
     
-    clk, rst, enable, configuration, A, B, C, done);
-    input clk, rst, enable, configuration;
-    input [162:0] A, B;
+    input clk, rst, enable, configuration,
+    input [162:0] A, B,
 
-    output wire [162:0] C;
+    output wire [162:0] C,
 
-    output wire done;
+    output wire done);
 
     wire [162:0] z_tmp, c_tmp;
     assign C = (~configuration) ? c_tmp : z_tmp; 

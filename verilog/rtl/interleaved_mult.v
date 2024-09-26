@@ -15,10 +15,17 @@
 -----------------------------------*/
 
 
-module shift_reg (clk, load, shift_r, rst, A, Z);
-   input  [162:0] A;
-   input  clk, load, shift_r, rst;
-   output wire [162:0] Z;
+module shift_reg (
+	`ifdef USE_POWER_PINS
+		inout vccd2,	// User area 2 1.8v supply
+		inout vssd2,	// User area 2 digital ground
+	`endif
+   input [162:0] A,
+   input clk, 
+   input load,
+   input shift_r,
+   input rst,
+   output wire [162:0] Z);
 
    reg [162:0] aa;
    
@@ -44,11 +51,18 @@ endmodule
 // interleaved_mult
 //---------------------------------
 
-module interleaved_mult (clk, rst, start, A, B, Z, done);
-	input  [162:0] A, B;
-	input  clk, rst, start;
-	output wire [162:0] Z;
-	output wire done;
+module interleaved_mult (
+	`ifdef USE_POWER_PINS
+		inout vccd2,	// User area 2 1.8v supply
+		inout vssd2,	// User area 2 digital ground
+	`endif
+	input [162:0] A, 
+	input [162:0] B,
+	input clk, 
+	input rst,
+	input start,
+	output wire [162:0] Z,
+	output wire done);
 
 	reg load_done, shift_r;
 	reg [7:0] count;

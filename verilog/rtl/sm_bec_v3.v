@@ -37,7 +37,7 @@ module sm_bec_v3 (
 	output wire next_key,
 	output wire done,
 	output wire [162:0] wout,
-	output wire[162:0] zout
+	output wire [162:0] zout
 );
 	// FSM Definition
 	reg [2:0] current_state, next_state;

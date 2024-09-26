@@ -68,15 +68,11 @@
     "FP_PDN_HSPACING": "expr::(5 * $FP_PDN_CORE_RING_HWIDTH)",
     "VDD_NETS": [
         "vccd1",
-        "vccd2",
-        "vdda1",
-        "vdda2"
+        "vccd2"
     ],
     "GND_NETS": [
         "vssd1",
-        "vssd2",
-        "vssa1",
-        "vssa2"
+        "vssd2"
     ],
     "SYNTH_USE_PG_PINS_DEFINES": "USE_POWER_PINS",
     "pdk::sky130*": {

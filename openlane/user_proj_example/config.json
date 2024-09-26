@@ -12,12 +12,11 @@
     "CLOCK_PERIOD": 25,
     "CLOCK_PORT": "wb_clk_i",
     "CLOCK_NET": "sm_bec_v3.clk",
-    "FP_SIZING": "absolute",
-    "DIE_AREA": "0 0 2800 1760",
+    "DIE_AREA": "0 0 800 900",
     "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
     "MAX_TRANSITION_CONSTRAINT": 1.0,
     "MAX_FANOUT_CONSTRAINT": 16,
-    "PL_TARGET_DENSITY": 0.4,
+    "PL_TARGET_DENSITY": 0.9,
     "PL_RESIZER_SETUP_SLACK_MARGIN": 0.4,
     "GLB_RESIZER_SETUP_SLACK_MARGIN": 0.2,
     "GLB_RESIZER_HOLD_SLACK_MARGIN": 0.2,
@@ -26,18 +25,24 @@
     "SYNTH_BUFFERING": 0,
     "RUN_HEURISTIC_DIODE_INSERTION": 1,
     "HEURISTIC_ANTENNA_THRESHOLD": 110,    
-    "GRT_REPAIR_ANTENNAS": 1,
+    "PL_MAX_DISPLACEMENT_X": 200,
+    "PL_MAX_DISPLACEMENT_Y": 200,
+
+    "GPL_CELL_PADDING": 1,
+
     "VDD_NETS": [
-        "vccd1"
+        "vccd1",
+        "vccd2"
     ],
     "GND_NETS": [
-        "vssd1"
+        "vssd1",
+        "vssd2"
     ],
     "IO_SYNC": 0,
     "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",
     "RUN_CVC": 1,
     "pdk::sky130*": {
-        "FP_CORE_UTIL": 45,
+        "FP_CORE_UTIL": 40,
         "RT_MAX_LAYER": "met4",
         "scl::sky130_fd_sc_hd": {
             "CLOCK_PERIOD": 25

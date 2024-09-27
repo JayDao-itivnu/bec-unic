@@ -3,20 +3,16 @@
     "DESIGN_IS_CORE": 0,
     "VERILOG_FILES": [
         "dir::../../verilog/rtl/defines.v",
-        "dir::../../verilog/rtl/user_proj_example.v",
-        "dir::../../verilog/rtl/sm_bec_v3.v",
-        "dir::../../verilog/rtl/acb.v",
-        "dir::../../verilog/rtl/interleaved_mult.v",
-        "dir::../../verilog/rtl/classic_squarer.v"
+        "dir::../../verilog/rtl/user_proj_example.v"        
     ],
     "CLOCK_PERIOD": 25,
     "CLOCK_PORT": "wb_clk_i",
-    "CLOCK_NET": "sm_bec_v3.clk",
-    "DIE_AREA": "0 0 800 900",
+    "DIE_AREA": "0 0 500 900",
     "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
+    "FP_SIZING": "absolute",
+
     "MAX_TRANSITION_CONSTRAINT": 1.0,
     "MAX_FANOUT_CONSTRAINT": 16,
-    "PL_TARGET_DENSITY": 0.9,
     "PL_RESIZER_SETUP_SLACK_MARGIN": 0.4,
     "GLB_RESIZER_SETUP_SLACK_MARGIN": 0.2,
     "GLB_RESIZER_HOLD_SLACK_MARGIN": 0.2,
@@ -25,24 +21,20 @@
     "SYNTH_BUFFERING": 0,
     "RUN_HEURISTIC_DIODE_INSERTION": 1,
     "HEURISTIC_ANTENNA_THRESHOLD": 110,    
-    "PL_MAX_DISPLACEMENT_X": 200,
-    "PL_MAX_DISPLACEMENT_Y": 200,
-
-    "GPL_CELL_PADDING": 1,
-
+    "PL_MAX_DISPLACEMENT_X": 150,
+    "PL_MAX_DISPLACEMENT_Y": 150,
+    
     "VDD_NETS": [
-        "vccd1",
-        "vccd2"
+        "vccd1"
     ],
     "GND_NETS": [
-        "vssd1",
-        "vssd2"
+        "vssd1"
     ],
     "IO_SYNC": 0,
     "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",
     "RUN_CVC": 1,
     "pdk::sky130*": {
-        "FP_CORE_UTIL": 40,
+        "FP_CORE_UTIL": 60,
         "RT_MAX_LAYER": "met4",
         "scl::sky130_fd_sc_hd": {
             "CLOCK_PERIOD": 25

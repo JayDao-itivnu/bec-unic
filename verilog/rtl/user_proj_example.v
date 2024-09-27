@@ -39,9 +39,7 @@
 module user_proj_example (
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
-	inout vccd2,	// User area 2 1.8v supply
 	inout vssd1,	// User area 1 digital ground
-	inout vssd2,	// User area 2 digital ground
 `endif
 
 	// // Wishbone Slave ports (WB MI A)
@@ -49,27 +47,36 @@ module user_proj_example (
 	input wb_rst_i,
 
 	// Logic Analyzer Signals
-	input  	[127:0] 	la_data_in,
-	output 	reg [127:0] la_data_out,
-	input  	[127:0] 	la_oenb,
-	
-	input 	slv_done,
+	input  [127:0] la_data_in,
+	output reg [127:0] la_data_out,
+	input  [127:0] la_oenb,
+	input slv_done,
+	input next_key,
 
-	// Control Slave Signals
 	output reg master_ena_proc,
-	output enable_write,
-	output updateRegs
-
+	output ki,
+	output reg [162:0] w1,
+	output reg [162:0] z1,
+	output reg[162:0] w2,
+	output reg [162:0] z2,
+	output reg [162:0] inv_w0,
+	output reg [162:0] d,
+	input [162:0] wout,
+	input [162:0] zout
 );
 	wire clk;
 	wire rst;
 	reg master_enable, master_load, enable_proc, enable_write, updateRegs;
+	parameter DELAY = 2000;
+
+	reg [162:0] reg_key;
+	reg [162:0] reg_wout, reg_zout;
 
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
 
-	
+	assign ki = reg_key[0];
 	
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
@@ -80,6 +87,7 @@ module user_proj_example (
 	/*
 	Nơi khai báo tên instantaneous và nối các chân của khối BEC.
 	*/
+
 
 	
 	always @(posedge clk or posedge rst) begin
@@ -171,6 +179,134 @@ module user_proj_example (
 		endcase
 	end
 
+	always @(posedge clk or posedge rst) begin
+		if (rst) begin
+			w1      <= 0;
+			z1      <= 0;
+			w2      <= 0;
+			z2      <= 0;
+			inv_w0  <= 0;
+			d       <= 0;
+			reg_key     <= 0;
+			la_data_out <= {(128){1'b0}};
+	
+		end else begin
+			case (current_state)
+				idle: begin
+
+					la_data_out[127:122] <= 6'b000000; 
+
+				end 
+
+				write_mode: begin
+					if (la_data_in[95:82] == 14'b00000000000001) begin
+						w1[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0001; 	//0x04
+					end else if (la_data_in[95:82] == 14'b00000000000011) begin
+						w1[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0010;	//0x08
+
+					end else if (la_data_in[95:82] == 14'b00000000000111) begin
+						z1[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0011;	//0x0C
+					end else if (la_data_in[95:82] == 14'b00000000001111) begin
+						z1[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0100; 	//0x10
+
+					end else if (la_data_in[95:82] == 14'b00000000011111) begin
+						w2[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0101;	//0x14
+					end else if (la_data_in[95:82] == 14'b00000000111111) begin
+						w2[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b0110;	//0x18
+
+					end else if (la_data_in[95:82] == 14'b00000001111111) begin
+						z2[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b0111;	//0x1C
+					end else if (la_data_in[95:82] == 14'b00000011111111) begin
+						z2[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1000;	//0x20
+
+					end else if (la_data_in[95:82] == 14'b00000111111111) begin
+						inv_w0[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1001;	//0x24
+					end else if (la_data_in[95:82] == 14'b00001111111111) begin
+						inv_w0[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1010;	//0x28
+
+					end else if (la_data_in[95:82] == 14'b00011111111111) begin
+						d[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1011;	//0x2C
+					end else if (la_data_in[95:82] == 14'b00111111111111) begin
+						d[81:0] 		<= la_data_in[81:0];
+						la_data_out[125:122] <= 4'b1100; 	//0x30
+
+					end else if (la_data_in[95:82] == 14'b01111111111111) begin
+						reg_key[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1101;	//0x34
+					end else if (la_data_in[95:82] == 14'b11111111111111) begin
+						reg_key[81:0] 		<= la_data_in[81:0];
+						la_data_out[127:122] <= 6'b011110;	//0x78
+					end
+				end
+				
+				proc: begin
+					la_data_out[127:122] <= 6'b100111;
+					la_data_out[121:0] <= {(122){1'b0}};
+					if (next_key) begin
+						reg_key <= reg_key >> 1;
+					end
+
+					if (slv_done) begin
+						reg_wout <= wout;
+						reg_zout <= zout;
+					end	
+				end
+
+				read_mode: begin
+					// enable_write <= 1'h0;
+					if (la_data_in[31:24] == 8'hAB) begin
+						case (la_data_in[23:16]) 
+							8'h04: begin
+								la_data_out[113:32] 	<= reg_wout[81:0]; 
+								la_data_out[127:114]	<= 14'b11001000000000;		// 0xC8
+							end
+
+							8'h08: begin
+								la_data_out[112:32] 	<= reg_zout[162:82]; 
+								la_data_out[127:114]	<= 14'b11001100000000;		// 0xCC
+							end
+
+							8'h0C: begin
+								la_data_out[113:32] 	<= reg_zout[81:0]; 
+								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
+							end
+
+							default: begin
+								la_data_out[112:32] 	<= reg_wout[162:82]; 		// 0xC4
+								la_data_out[127:114]	<= 14'b11000100000000;
+							end
+						endcase
+					end
+				end
+				
+				default: begin
+					w1      <= 0;
+					z1      <= 0;
+					w2      <= 0;
+					z2      <= 0;
+					inv_w0  <= 0;
+					d       <= 0;
+					reg_key     <= 0;
+					
+					reg_wout    <= 0;
+					reg_zout    <= 0;
+					
+					la_data_out[127:122] <= 6'b001100; 
+				end
+			endcase
+		end
+	end
 endmodule
 
 `default_nettype wire

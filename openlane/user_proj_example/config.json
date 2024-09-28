@@ -10,6 +10,7 @@
     "DIE_AREA": "0 0 500 900",
     "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
     "FP_SIZING": "absolute",
+    "GRT_OVERFLOW_ITERS": 200,
 
     "MAX_TRANSITION_CONSTRAINT": 1.0,
     "MAX_FANOUT_CONSTRAINT": 16,
@@ -34,7 +35,7 @@
     "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",
     "RUN_CVC": 1,
     "pdk::sky130*": {
-        "FP_CORE_UTIL": 60,
+        "FP_CORE_UTIL": 50,
         "RT_MAX_LAYER": "met4",
         "scl::sky130_fd_sc_hd": {
             "CLOCK_PERIOD": 25

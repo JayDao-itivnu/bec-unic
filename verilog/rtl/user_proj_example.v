@@ -88,8 +88,6 @@ module user_proj_example (
 	Nơi khai báo tên instantaneous và nối các chân của khối BEC.
 	*/
 
-
-	
 	always @(posedge clk or posedge rst) begin
 		if (rst) 
 			current_state <= idle;

@@ -50,34 +50,45 @@ module user_proj_example (
 	input  [127:0] la_data_in,
 	output reg [127:0] la_data_out,
 	input  [127:0] la_oenb,
-	input slv_done,
+	
+	// Status output of BEC
+	input [3:0] becStatus,
 	input next_key,
 
 	output reg master_ena_proc,
 	output ki,
-	output reg [162:0] w1,
-	output reg [162:0] z1,
-	output reg[162:0] w2,
-	output reg [162:0] z2,
-	output reg [162:0] inv_w0,
-	output reg [162:0] d,
-	input [162:0] wout,
-	input [162:0] zout
+
+	output w1,
+	output z1,
+	output w2,
+	output z2,
+	output inv_w0,
+	output d,
+	output load_data,
+
+	input wout,
+	input zout
 );
 	wire clk;
 	wire rst;
 	reg master_enable, master_load, enable_proc, enable_write, updateRegs;
+	reg reg_cnt;
 	parameter DELAY = 2000;
 
-	reg [162:0] reg_key;
+	reg [162:0] reg_key, reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d;
 	reg [162:0] reg_wout, reg_zout;
 
 	// FSM Definition
 	reg [1:0]current_state, next_state;
-	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
+	parameter idle=3'b000, write_mode=3'b001, upload=3'b010,  proc=3'b011, download=3'b100, read_mode=3'b101;
 
 	assign ki = reg_key[0];
-	
+	assign w1 = reg_w1[162];
+	assign z1 = reg_z1[162];
+	assign w2 = reg_w2[162];
+	assign z2 = reg_z2[162];
+	assign inv_w0 = reg_inv_w0[162];
+	assign d = reg_d[162];
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
@@ -95,30 +106,44 @@ module user_proj_example (
 			current_state <= next_state;
 	end
 
-	always @(enable_write or enable_proc or updateRegs or slv_done) begin
+	always @(*) begin
 		case (current_state)
 			idle: begin
 				if (enable_write == 1'b1) begin
-					next_state <= write_mode;
+					next_state = write_mode;
 				end else begin 
-					next_state <= idle;
+					next_state = idle;
 				end
 			end
 
 			write_mode: begin
 				if (enable_proc == 1'b1) begin
-					next_state <= proc;
+					next_state = upload;
 				end else begin 
-					next_state <= write_mode;
+					next_state = write_mode;
 				end
+			end
+
+			upload: begin
+				if (becStatus[2]!== 0) 
+					next_state = proc;
+				else
+					next_state = upload;
 			end
 
 			proc: begin
 				if (slv_done == 1'b1) begin
-					next_state <= read_mode;
+					next_state <= download;
 				end else begin 
 					next_state <= proc;
 				end
+			end
+
+			download: begin
+				if (becStatus[0]!== 0)
+					next_state = read_mode;
+				else
+					next_state = download;
 			end
 
 			read_mode: begin
@@ -191,9 +216,7 @@ module user_proj_example (
 		end else begin
 			case (current_state)
 				idle: begin
-
 					la_data_out[127:122] <= 6'b000000; 
-
 				end 
 
 				write_mode: begin
@@ -248,17 +271,33 @@ module user_proj_example (
 					end
 				end
 				
+				upload: begin
+					if (load_data) begin
+						reg_w1 		<= reg_w1 << 1;
+						reg_z1 		<= reg_z1 << 1;
+						reg_w2 		<= reg_w2 << 1;
+						reg_z2 		<= reg_z2 << 1;
+						reg_inv_w0 	<= reg_inv_w0 << 1;
+						reg_d 		<= reg_d << 1;
+					end
+				end
+
 				proc: begin
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
 					if (next_key) begin
 						reg_key <= reg_key >> 1;
 					end
-
-					if (slv_done) begin
-						reg_wout <= wout;
-						reg_zout <= zout;
-					end	
+					// if (slv_done) begin
+					// 	dlding <= 1'b1;
+					// end	else begin
+					// 	dlding <= 1'b0;
+					// end
+				end
+				
+				download: begin
+					reg_wout <= (reg_wout << 1) ^ wout;
+					reg_zout <= (reg_zout << 1) ^ zout;
 				end
 
 				read_mode: begin

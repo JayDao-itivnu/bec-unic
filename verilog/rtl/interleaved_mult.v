@@ -15,23 +15,16 @@
 -----------------------------------*/
 
 
-module shift_reg (
-	`ifdef USE_POWER_PINS
-		inout vccd2,	// User area 2 1.8v supply
-		inout vssd2,	// User area 2 digital ground
-	`endif
-   input [162:0] A,
-   input clk, 
-   input load,
-   input shift_r,
-   input rst,
-   output wire [162:0] Z);
+module shift_reg (clk, load, shift_r, rst, A, Z);
+   input  [162:0] A;
+   input  clk, load, shift_r, rst;
+   output wire [162:0] Z;
 
    reg [162:0] aa;
    
    assign Z = aa;
 
-   always @(posedge clk or posedge rst) begin
+   always @(posedge clk or rst) begin
 	   if (rst)
 		   aa <= 0;
 	   else if (load)
@@ -51,18 +44,11 @@ endmodule
 // interleaved_mult
 //---------------------------------
 
-module interleaved_mult (
-	`ifdef USE_POWER_PINS
-		inout vccd2,	// User area 2 1.8v supply
-		inout vssd2,	// User area 2 digital ground
-	`endif
-	input [162:0] A, 
-	input [162:0] B,
-	input clk, 
-	input rst,
-	input start,
-	output wire [162:0] Z,
-	output wire done);
+module interleaved_mult (clk, rst, start, A, B, Z, done);
+	input  [162:0] A, B;
+	input  clk, rst, start;
+	output wire [162:0] Z;
+	output wire done;
 
 	reg load_done, shift_r;
 	reg [7:0] count;
@@ -70,7 +56,7 @@ module interleaved_mult (
 	wire [162:0] regA;
 	reg count_done;
 
-	assign Z = (current_state == ST_DONE) ? regC : 163'bZ;
+	assign Z = regC;
 	
 	reg [1:0] current_state, next_state;
 	parameter IDLE = 2'b00, LOAD = 2'b01, SHIFT = 2'b10, ST_DONE =2'b11;
@@ -144,30 +130,32 @@ module interleaved_mult (
 			current_state <= next_state;
 		end  
 
-	always @(start or load_done or count_done) begin
+	always @(*) begin
 		case (current_state)
 			IDLE: begin
 				if (start && !count_done)
-					next_state <= LOAD;
+					next_state = LOAD;
 				else
-					next_state <= IDLE;
+					next_state = IDLE;
 			end
 			LOAD: begin
 				if (load_done) 
-					next_state <= SHIFT;
+					next_state = SHIFT;
 				else
-					next_state <= LOAD;
+					next_state = LOAD;
 			end
 			SHIFT: begin
 				if (count_done && start)
-					next_state <= ST_DONE;
-				else 
-					next_state <= SHIFT;
+					next_state = ST_DONE;
+				else if (~start)
+					next_state = IDLE;
+				else
+					next_state = SHIFT;
 			end
 			ST_DONE: begin
-				next_state <= IDLE;
+				next_state = IDLE;
 			end
-			default: next_state <= IDLE;
+			default: next_state = IDLE;
 		endcase
 	end
 

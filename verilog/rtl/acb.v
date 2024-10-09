@@ -17,12 +17,7 @@
 //`include "../../../verilog/rtl/classic_squarer.v"
 //`include "../../../verilog/rtl/interleaved_mult.v"
 
-module acb (
-    `ifdef USE_POWER_PINS
-        inout vccd2,	// User area 2 1.8v supply
-        inout vssd2,	// User area 2 digital ground
-    `endif
-    
+module acb (    
     input clk, 
     input rst,
     input enable,
@@ -38,19 +33,11 @@ module acb (
     assign C = (~configuration) ? c_tmp : z_tmp; 
 
     classic_squarer u1 (
-        `ifdef USE_POWER_PINS
-			.vccd2(vccd2),	// User area 2 1.8v supply
-			.vssd2(vssd2),	// User area 2 digital ground
-		`endif
         .a(z_tmp),
         .c(c_tmp)
     );
 
     interleaved_mult u2 (
-        `ifdef USE_POWER_PINS
-			.vccd2(vccd2),	// User area 2 1.8v supply
-			.vssd2(vssd2),	// User area 2 digital ground
-		`endif
         .A(A),
         .B(B),
         .clk(clk),

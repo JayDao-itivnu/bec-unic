@@ -24,21 +24,16 @@ module sm_bec_v3 (
 	input clk,
 	input rst, 
 	input enable,
-
-	input w1, 
-	input z1,
-	input w2,
-	input z2,
-
+	input load_data,
+	input [2:0] load_status,
+	input [162:0] data_in, 
+	
 	input ki,
-	input d,
-	input inv_w0,
 
 	output wire next_key,
 	output wire [3:0]  becStatus,
 	output done,
-	output wire wout,
-	output wire zout
+	output [162:0] data_out
 );
 	// FSM Definition
 	reg [3:0] current_state, next_state;
@@ -55,25 +50,15 @@ module sm_bec_v3 (
 	reg downloadSig, uploadSig, procSig, idleSig;
 	
 	assign becStatus = {idleSig, downloadSig, procSig, uploadSig};
-
+	assign data_out = ((uploadSig == 1'b1) & (load_status == 3'b000)) ? regA : ((uploadSig == 1'b1) & (load_status == 3'b001)) ? regB: 0;
 	assign next_key = done_loop;
 
 	assign done_loop = (current_state == st7)? 1'b1 : 1'b0;
-	assign wout = (current_state == uload) ? regA[162] : 1'b0;
-	assign zout = (current_state == uload) ? regB[162] : 1'b0;
 	assign done = (current_state == uload) ? 1'b1 : 1'b0;
-
-	assign download_done = ((reg_key_iter == 161) & (current_state == dload)) ? 1'b1 : 1'b0;
-	assign upload_done = ((reg_key_iter == 161) & (current_state == uload)) ? 1'b1 : 1'b0;
 
 	// assign configuration = ((current_state == st3) ^ (current_state == st6)) ? 1'b1 : 1'b0;
 
 	acb u1(
-		`ifdef USE_POWER_PINS
-			.vccd2(vccd2),	// User area 2 1.8v supply
-			.vssd2(vssd2),	// User area 2 digital ground
-		`endif
-
 		.clk(clk),
 		.rst(rst),
 		.enable(local_enable),
@@ -122,14 +107,14 @@ module sm_bec_v3 (
 	always @(*) begin
 		case (current_state)
 			idle:	begin
-				if (enable)
+				if (load_data)
 					next_state = dload;
 				else
 					next_state = idle;
 			end
 
 			dload: 	begin
-				if (download_done)
+				if (enable)
 					next_state = st0;
 				else
 					next_state = dload;
@@ -177,7 +162,7 @@ module sm_bec_v3 (
 					else
 						next_state = st0;
 			uload: begin
-				if (upload_done)
+				if (load_status == 3'b001)
 					next_state = idle;
 				else
 					next_state = uload;
@@ -204,21 +189,25 @@ module sm_bec_v3 (
 		end else begin
 			if (downloadSig) begin
 				if (ki) begin
-					regB <= (regB << 1) ^ z1;
-					regC <= (regC << 1) ^ w2;
-					regD <= (regD << 1) ^ z2;
-					reg_d <= (reg_d << 1) ^ d;
-					reg_inv_w0 <= (reg_inv_w0 << 1) ^ inv_w0;
-					inACB_1 <= (inACB_1 << 1) ^ w1;
-					inACB_2 <= (inACB_2 << 1) ^ z2;
+					case (load_status)
+						3'b000:  	inACB_1 <= data_in;
+						3'b001: 	regB 	<= data_in;
+						3'b010:		regC	<= data_in;
+						3'b011:		regD 	<= data_in;
+						3'b100:		reg_d	<= data_in;
+						3'b101:		reg_inv_w0 <= data_in;
+						default: 	reg_inv_w0 <= data_in;
+					endcase
 				end else begin
-					regB <= (regB << 1) ^ z1;
-					regA <= (regA << 1) ^ w1;
-					regD <= (regD << 1) ^ z2;
-					reg_d <= (reg_d << 1) ^ d;
-					reg_inv_w0 <= (reg_inv_w0 << 1) ^ inv_w0;
-					inACB_1 <= (inACB_1 << 1) ^ w2;
-					inACB_2 <= (inACB_2 << 1) ^ z1;
+					case (load_status)
+						3'b000:  	regA	<= data_in;
+						3'b001: 	regB 	<= data_in;
+						3'b010:		inACB_1	<= data_in;
+						3'b011:		regD 	<= data_in;
+						3'b100:		reg_d	<= data_in;
+						3'b101:		reg_inv_w0 <= data_in;
+						default: 	reg_inv_w0 <= data_in;
+					endcase
 				end
 			end else if (procSig) begin
 				if (next_round) begin
@@ -282,31 +271,15 @@ module sm_bec_v3 (
 						end
 
 						default: begin
-							if (reg_key_iter == 0) begin
-								if (ki) begin
-									regA <= outACB;
-									regB <= z1;
-									regC <= w2;
-									regD <= z2;
-								end else begin
-									regA <= w1;
-									regB <= z1;
-									regC <= outACB;
-									regD <= z2;
-								end
+							if (ki) begin
+								regA <= outACB;
 							end else begin
-								if (ki) begin
-									regA <= outACB;
-								end else begin
-									regC <= outACB;
-								end
+								regC <= outACB;
 							end
 						end
 					endcase
 				end
 			end else if (uploadSig) begin
-				regA <= regA << 1;
-				regB <= regB << 1;
 				reg_d <= 0;
 				reg_inv_w0 <= 0;
 				regC <= 0;
@@ -404,8 +377,8 @@ module sm_bec_v3 (
 				end else begin
                     reg_key_iter <= reg_key_iter;
                 end
-			end else if (downloadSig | uploadSig) begin
-				if (reg_key_iter < 161) begin
+			end else if (downloadSig) begin
+				if (reg_key_iter < 6) begin
 					reg_key_iter <= reg_key_iter + 1;
 				end else begin
 					reg_key_iter <= 0;

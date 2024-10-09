@@ -34,9 +34,8 @@
  *
  *-------------------------------------------------------------
  */
-// `include "../../../verilog/rtl/sm_bec_v3.v"
-// `include "../../../verilog/rtl/counter.v"
-module user_proj_example (
+
+module controller (
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
 	inout vssd1,	// User area 1 digital ground
@@ -51,44 +50,31 @@ module user_proj_example (
 	output reg [127:0] la_data_out,
 	input  [127:0] la_oenb,
 	
-	// Status output of BEC
-	input [3:0] becStatus,
+	// Interconnection bus of BEC
+	output reg master_ena_proc,
+	output load_data,
+	output reg [2:0] load_status,
+	output [162:0] data_out,
+	output ki,
 	input next_key,
 
-	output reg master_ena_proc,
-	output ki,
-
-	output w1,
-	output z1,
-	output w2,
-	output z2,
-	output inv_w0,
-	output d,
-	output load_data,
-
-	input wout,
-	input zout
+	input [3:0] becStatus,
+	input slv_done,
+	input [162:0] data_in
 );
 	wire clk;
 	wire rst;
 	reg master_enable, master_load, enable_proc, enable_write, updateRegs;
 	reg reg_cnt;
-	parameter DELAY = 2000;
 
-	reg [162:0] reg_key, reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d;
-	reg [162:0] reg_wout, reg_zout;
+	reg [162:0] reg_temp;
 
 	// FSM Definition
 	reg [1:0]current_state, next_state;
-	parameter idle=3'b000, write_mode=3'b001, upload=3'b010,  proc=3'b011, download=3'b100, read_mode=3'b101;
-
-	assign ki = reg_key[0];
-	assign w1 = reg_w1[162];
-	assign z1 = reg_z1[162];
-	assign w2 = reg_w2[162];
-	assign z2 = reg_z2[162];
-	assign inv_w0 = reg_inv_w0[162];
-	assign d = reg_d[162];
+	parameter idle=2'b00, write_mode=2'b01,  proc=2'b11, read_mode=2'b10;
+	assign ki = (current_state == enable_proc) ? reg_temp[0] : 1'b0;
+	assign data_out = ((current_state == write_mode) & la_data_out[122] == 1'b0) ? reg_temp : 0;
+	assign load_data = enable_write;
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
@@ -118,32 +104,18 @@ module user_proj_example (
 
 			write_mode: begin
 				if (enable_proc == 1'b1) begin
-					next_state = upload;
+					next_state = proc;
 				end else begin 
 					next_state = write_mode;
 				end
 			end
 
-			upload: begin
-				if (becStatus[2]!== 0) 
-					next_state = proc;
-				else
-					next_state = upload;
-			end
-
 			proc: begin
-				if (slv_done == 1'b1) begin
-					next_state <= download;
+				if (slv_done) begin
+					next_state <= read_mode;
 				end else begin 
 					next_state <= proc;
 				end
-			end
-
-			download: begin
-				if (becStatus[0]!== 0)
-					next_state = read_mode;
-				else
-					next_state = download;
 			end
 
 			read_mode: begin
@@ -204,13 +176,8 @@ module user_proj_example (
 
 	always @(posedge clk or posedge rst) begin
 		if (rst) begin
-			w1      <= 0;
-			z1      <= 0;
-			w2      <= 0;
-			z2      <= 0;
-			inv_w0  <= 0;
-			d       <= 0;
-			reg_key     <= 0;
+			reg_temp      <= 0;
+			load_status      <= 0;
 			la_data_out <= {(128){1'b0}};
 	
 		end else begin
@@ -221,64 +188,54 @@ module user_proj_example (
 
 				write_mode: begin
 					if (la_data_in[95:82] == 14'b00000000000001) begin
-						w1[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0001; 	//0x04
 					end else if (la_data_in[95:82] == 14'b00000000000011) begin
-						w1[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0010;	//0x08
+						load_status <= 3'b000;				// Pushing w1 to the BEC
 
 					end else if (la_data_in[95:82] == 14'b00000000000111) begin
-						z1[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0011;	//0x0C
 					end else if (la_data_in[95:82] == 14'b00000000001111) begin
-						z1[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0100; 	//0x10
-
+						load_status <= 3'b001;				// Pushing z1 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000000011111) begin
-						w2[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0101;	//0x14
 					end else if (la_data_in[95:82] == 14'b00000000111111) begin
-						w2[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0110;	//0x18
-
+						load_status <= 3'b010;				// Pushing w2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000001111111) begin
-						z2[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0111;	//0x1C
 					end else if (la_data_in[95:82] == 14'b00000011111111) begin
-						z2[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1000;	//0x20
-
+						load_status <= 3'b011;				// Pushing z2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000111111111) begin
-						inv_w0[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b1001;	//0x24
 					end else if (la_data_in[95:82] == 14'b00001111111111) begin
-						inv_w0[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1010;	//0x28
-
+						load_status <= 3'b100;				// Pushing inv_w0 to the BEC
 					end else if (la_data_in[95:82] == 14'b00011111111111) begin
-						d[162:82] 	<= la_data_in[80:0];
-						la_data_out[125:122] <= 4'b1011;	//0x2C
+						reg_temp[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1011;	// 0x2C in
 					end else if (la_data_in[95:82] == 14'b00111111111111) begin
-						d[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1100; 	//0x30
-
+						load_status <= 3'b101;				// Pushing d to the BEC
 					end else if (la_data_in[95:82] == 14'b01111111111111) begin
-						reg_key[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b1101;	//0x34
 					end else if (la_data_in[95:82] == 14'b11111111111111) begin
-						reg_key[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[127:122] <= 6'b011110;	//0x78
-					end
-				end
-				
-				upload: begin
-					if (load_data) begin
-						reg_w1 		<= reg_w1 << 1;
-						reg_z1 		<= reg_z1 << 1;
-						reg_w2 		<= reg_w2 << 1;
-						reg_z2 		<= reg_z2 << 1;
-						reg_inv_w0 	<= reg_inv_w0 << 1;
-						reg_d 		<= reg_d << 1;
 					end
 				end
 
@@ -286,41 +243,36 @@ module user_proj_example (
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
 					if (next_key) begin
-						reg_key <= reg_key >> 1;
+						reg_temp <= reg_temp >> 1;
 					end
-					// if (slv_done) begin
-					// 	dlding <= 1'b1;
-					// end	else begin
-					// 	dlding <= 1'b0;
-					// end
-				end
-				
-				download: begin
-					reg_wout <= (reg_wout << 1) ^ wout;
-					reg_zout <= (reg_zout << 1) ^ zout;
 				end
 
 				read_mode: begin
 					// enable_write <= 1'h0;
+					reg_temp <= data_in;
 					if (la_data_in[31:24] == 8'hAB) begin
 						case (la_data_in[23:16]) 
 							8'h04: begin
-								la_data_out[113:32] 	<= reg_wout[81:0]; 
+								load_status <= 3'b000;
+								la_data_out[113:32] 	<= reg_temp[81:0]; 
 								la_data_out[127:114]	<= 14'b11001000000000;		// 0xC8
 							end
 
 							8'h08: begin
-								la_data_out[112:32] 	<= reg_zout[162:82]; 
+								load_status <= 3'b001;
+								la_data_out[112:32] 	<= reg_temp[162:82]; 
 								la_data_out[127:114]	<= 14'b11001100000000;		// 0xCC
 							end
 
 							8'h0C: begin
-								la_data_out[113:32] 	<= reg_zout[81:0]; 
+								load_status <= 3'b001;
+								la_data_out[113:32] 	<= reg_temp[81:0]; 
 								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
 							end
 
 							default: begin
-								la_data_out[112:32] 	<= reg_wout[162:82]; 		// 0xC4
+								load_status <= 3'b000;
+								la_data_out[112:32] 	<= reg_temp[162:82]; 		// 0xC4
 								la_data_out[127:114]	<= 14'b11000100000000;
 							end
 						endcase
@@ -328,16 +280,9 @@ module user_proj_example (
 				end
 				
 				default: begin
-					w1      <= 0;
-					z1      <= 0;
-					w2      <= 0;
-					z2      <= 0;
-					inv_w0  <= 0;
-					d       <= 0;
-					reg_key     <= 0;
+					reg_temp	<= 0;
+					load_status <= 0;
 					
-					reg_wout    <= 0;
-					reg_zout    <= 0;
 					
 					la_data_out[127:122] <= 6'b001100; 
 				end

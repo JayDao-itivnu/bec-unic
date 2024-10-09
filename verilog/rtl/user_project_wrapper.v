@@ -81,14 +81,14 @@ module user_project_wrapper #(
 /*--------------------------------------*/
 /* User project is instantiated  here   */
 /*--------------------------------------*/
-	wire [162:0] w1, z1, w2, z2, inv_w0, d, key;
-	wire [162:0] wout, zout;
+	wire [162:0] configBus, dataBus;
 	wire ki;
-	wire slave_ena;
-	wire slave_done;
+	wire slave_ena, w_slvDone, w_load_data;
+	wire [2:0] w_loadStatus;
+	wire [3:0] w_becStatus;
 	wire next_key;
 
-	user_proj_example mprj (
+	controller control_unit (
 	`ifdef USE_POWER_PINS
 		.vccd1(vccd1),	// User area 1 1.8V power
 		.vssd1(vssd1),	// User area 1 digital ground
@@ -100,23 +100,19 @@ module user_project_wrapper #(
 		// Logic Analyzer
 
 		.la_data_in(la_data_in),
-		// .la_data_out(la_data_out),
+		.la_data_out(la_data_out),
 		.la_oenb (la_oenb),
 		
 		// Control bus sm_bec_v3
 		.master_ena_proc(slave_ena),
-		.slv_done(slave_done),
+		.load_status(w_loadStatus),
 		.next_key(next_key),
-
+		.slv_done(w_slvDone),
+		.becStatus(w_becStatus),
+		.load_data(w_load_data),
 		// Data bus sm_bec_v3
-		.w1(w1),
-		.z1(z1),
-		.w2(w2),
-		.z2(z2),
-		.inv_w0(inv_w0),
-		.d(d),
-		.wout(wout),
-		.zout(zout),
+		.data_out(configBus),
+		.data_in(dataBus),
 		.ki(ki)
 	);
 
@@ -129,17 +125,15 @@ module user_project_wrapper #(
 		.clk(wb_clk_i),
 		.rst(wb_rst_i),
 		.enable(slave_ena),
-		.w1(w1),
-		.z1(z1),
-		.w2(w2),
-		.z2(z2),
+		.load_data(w_load_data),
+
+		.load_status(w_loadStatus),
+		.data_in(configBus),
 		.ki(ki),
-		.d(d),
-		.inv_w0(inv_w0),
 		.next_key(next_key),
-		.wout(wout),
-		.zout(zout),
-		.done(slave_done)
+		.becStatus(w_becStatus),
+		.data_out(dataBus),
+		.done(w_slvDone)
 	);
 
 endmodule	// user_project_wrapper

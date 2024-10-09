@@ -27,7 +27,7 @@ module sm_bec_v3 (
 	input load_data,
 	input [2:0] load_status,
 	input [162:0] data_in, 
-	
+	input trigLoad,
 	input ki,
 
 	output wire next_key,
@@ -187,13 +187,16 @@ module sm_bec_v3 (
 			reg_key_iter <= 0;
             local_enable <= 1'b0;
 		end else begin
-			if (downloadSig) begin
+			if (downloadSig & trigLoad) begin
 				if (ki) begin
 					case (load_status)
 						3'b000:  	inACB_1 <= data_in;
 						3'b001: 	regB 	<= data_in;
 						3'b010:		regC	<= data_in;
-						3'b011:		regD 	<= data_in;
+						3'b011:		begin
+										regD 	<= data_in;
+										inACB_2 <= data_in;
+									end
 						3'b100:		reg_d	<= data_in;
 						3'b101:		reg_inv_w0 <= data_in;
 						default: 	reg_inv_w0 <= data_in;
@@ -201,7 +204,10 @@ module sm_bec_v3 (
 				end else begin
 					case (load_status)
 						3'b000:  	regA	<= data_in;
-						3'b001: 	regB 	<= data_in;
+						3'b001: 	begin
+										regB 	<= data_in;
+										inACB_2 <= data_in;
+									end
 						3'b010:		inACB_1	<= data_in;
 						3'b011:		regD 	<= data_in;
 						3'b100:		reg_d	<= data_in;

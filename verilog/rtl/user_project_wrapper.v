@@ -83,7 +83,7 @@ module user_project_wrapper #(
 /*--------------------------------------*/
 	wire [162:0] configBus, dataBus;
 	wire ki;
-	wire slave_ena, w_slvDone, w_load_data;
+	wire slave_ena, w_slvDone, w_load_data, w_trigLoad;
 	wire [2:0] w_loadStatus;
 	wire [3:0] w_becStatus;
 	wire next_key;
@@ -109,6 +109,7 @@ module user_project_wrapper #(
 		.next_key(next_key),
 		.slv_done(w_slvDone),
 		.becStatus(w_becStatus),
+		.trigLoad(w_trigLoad),
 		.load_data(w_load_data),
 		// Data bus sm_bec_v3
 		.data_out(configBus),
@@ -130,6 +131,7 @@ module user_project_wrapper #(
 		.load_status(w_loadStatus),
 		.data_in(configBus),
 		.ki(ki),
+		.trigLoad(w_trigLoad),
 		.next_key(next_key),
 		.becStatus(w_becStatus),
 		.data_out(dataBus),

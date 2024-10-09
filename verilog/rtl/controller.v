@@ -55,6 +55,7 @@ module controller (
 	output load_data,
 	output reg [2:0] load_status,
 	output [162:0] data_out,
+	output trigLoad,
 	output ki,
 	input next_key,
 
@@ -73,6 +74,7 @@ module controller (
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01,  proc=2'b11, read_mode=2'b10;
 	assign ki = (current_state == enable_proc) ? reg_temp[0] : 1'b0;
+	assign trigLoad = ~la_data_out[122];
 	assign data_out = ((current_state == write_mode) & la_data_out[122] == 1'b0) ? reg_temp : 0;
 	assign load_data = enable_write;
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  

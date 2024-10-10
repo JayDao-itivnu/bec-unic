@@ -55,7 +55,7 @@ module controller (
 	output load_data,
 	output reg [2:0] load_status,
 	output [162:0] data_out,
-	output trigLoad,
+	output reg trigLoad,
 	output ki,
 	input next_key,
 
@@ -73,8 +73,8 @@ module controller (
 	// FSM Definition
 	reg [1:0]current_state, next_state;
 	parameter idle=2'b00, write_mode=2'b01,  proc=2'b11, read_mode=2'b10;
-	assign ki = (current_state == enable_proc) ? reg_temp[0] : 1'b0;
-	assign trigLoad = ~la_data_out[122];
+	assign ki = (current_state == proc) ? reg_temp[0] : 1'b0;
+	// assign trigLoad = (enable_write == 1'b1) ? ~la_data_out[122] : 1'b0;
 	assign data_out = ((current_state == write_mode) & la_data_out[122] == 1'b0) ? reg_temp : 0;
 	assign load_data = enable_write;
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
@@ -179,7 +179,8 @@ module controller (
 	always @(posedge clk or posedge rst) begin
 		if (rst) begin
 			reg_temp      <= 0;
-			load_status      <= 0;
+			load_status   <= 0;
+			trigLoad	  <= 0;
 			la_data_out <= {(128){1'b0}};
 	
 		end else begin
@@ -195,45 +196,57 @@ module controller (
 					end else if (la_data_in[95:82] == 14'b00000000000011) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0010;	//0x08
+						trigLoad			<= 1'b1;
 						load_status <= 3'b000;				// Pushing w1 to the BEC
 
 					end else if (la_data_in[95:82] == 14'b00000000000111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0011;	//0x0C
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000000001111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0100; 	//0x10
+						trigLoad			<= 1'b1;
 						load_status <= 3'b001;				// Pushing z1 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000000011111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0101;	//0x14
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000000111111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0110;	//0x18
+						trigLoad			<= 1'b1;
 						load_status <= 3'b010;				// Pushing w2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000001111111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0111;	//0x1C
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000011111111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1000;	//0x20
+						trigLoad			<= 1'b1;
 						load_status <= 3'b011;				// Pushing z2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000111111111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b1001;	//0x24
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00001111111111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1010;	//0x28
+						trigLoad			<= 1'b1;
 						load_status <= 3'b100;				// Pushing inv_w0 to the BEC
 					end else if (la_data_in[95:82] == 14'b00011111111111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b1011;	// 0x2C in
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00111111111111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1100; 	//0x30
+						trigLoad			<= 1'b1;
 						load_status <= 3'b101;				// Pushing d to the BEC
 					end else if (la_data_in[95:82] == 14'b01111111111111) begin
 						reg_temp[162:82] 	<= la_data_in[80:0];
+						trigLoad			<= 1'b0;
 						la_data_out[125:122] <= 4'b1101;	//0x34
 					end else if (la_data_in[95:82] == 14'b11111111111111) begin
 						reg_temp[81:0] 		<= la_data_in[81:0];

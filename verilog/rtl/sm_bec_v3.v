@@ -197,8 +197,8 @@ module sm_bec_v3 (
 										regD 	<= data_in;
 										inACB_2 <= data_in;
 									end
-						3'b100:		reg_d	<= data_in;
-						3'b101:		reg_inv_w0 <= data_in;
+						3'b101:		reg_d	<= data_in;
+						3'b100:		reg_inv_w0 <= data_in;
 						default: 	reg_inv_w0 <= data_in;
 					endcase
 				end else begin
@@ -210,8 +210,8 @@ module sm_bec_v3 (
 									end
 						3'b010:		inACB_1	<= data_in;
 						3'b011:		regD 	<= data_in;
-						3'b100:		reg_d	<= data_in;
-						3'b101:		reg_inv_w0 <= data_in;
+						3'b101:		reg_d	<= data_in;
+						3'b100:		reg_inv_w0 <= data_in;
 						default: 	reg_inv_w0 <= data_in;
 					endcase
 				end
@@ -365,8 +365,7 @@ module sm_bec_v3 (
 					end
 
 					default: begin
-						inACB_1 <= 0;
-                        inACB_2 <= 0;
+					
 						configuration <= 1'b0;
 					end 
 				endcase
@@ -383,12 +382,6 @@ module sm_bec_v3 (
 				end else begin
                     reg_key_iter <= reg_key_iter;
                 end
-			end else if (downloadSig) begin
-				if (reg_key_iter < 6) begin
-					reg_key_iter <= reg_key_iter + 1;
-				end else begin
-					reg_key_iter <= 0;
-				end
 			end else begin
 				local_enable <= 0;
                 reg_key_iter <= 0;

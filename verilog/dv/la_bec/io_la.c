@@ -8,7 +8,7 @@ static uint32_t write_la(int i, uint32_t wStatus, uint32_t data_reg0, uint32_t d
 	// First 2-bits of FSM status inside BEC core    
 	uint32_t BecStatus 	= reg_la3_data_in & 0x3C000000; //Take 4 bits of becStatus (la3_data_in[29:26])
 	uint32_t becAddres;
-	if ((BecStatus == 0x04000000) & (i == 0)) {
+	if ((BecStatus == 0x04000000)) {
 		// la3_data_in[29:26] = "0001" --- w1(low)
 		becAddres = 0x000C0000;
 	} else if (BecStatus == 0x08000000) {

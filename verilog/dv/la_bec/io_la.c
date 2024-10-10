@@ -41,7 +41,7 @@ static uint32_t write_la(int i, uint32_t wStatus, uint32_t data_reg0, uint32_t d
 	} else if (BecStatus == 0x2C000000) {
 		// la3_data_in[29:26] = "1011" --- d(low)
 		becAddres = 0x3FFC0000;
-	} else if (BecStatus == 0x30000000 | ((BecStatus == 0x00000000) & (i != 0))) {
+	} else if (BecStatus == 0x30000000 ) {
 		// la3_data_in[29:26] = "1100" --- key(high)
 		becAddres = 0x7FFC0000;
 	} else if (BecStatus == 0x34000000) {
@@ -62,7 +62,7 @@ static uint32_t write_la(int i, uint32_t wStatus, uint32_t data_reg0, uint32_t d
 
 static uint32_t write_data (int i) {
   while ((reg_la3_data_in & 0xFF000000 )!= 0x78000000) {
-	if (i == 0) {
+	// if (i == 0) {
 		// Writing w1 register
 		write_la(0, reg_la3_data_in, w1[0], w1[1], w1[2]);
 		write_la(0, reg_la3_data_in, w1[3], w1[4], w1[5]);
@@ -87,14 +87,14 @@ static uint32_t write_data (int i) {
 		write_la(0, reg_la3_data_in, d[0], d[1], d[2]);
 		write_la(0, reg_la3_data_in, d[3], d[4], d[5]);
 		// Writing key register
-		write_la(0, reg_la3_data_in, k_array[0][0], k_array[0][1], k_array[0][2]);
-		write_la(0, reg_la3_data_in, k_array[0][3], k_array[0][4], k_array[0][5]);
-		break;
-	} else {
 		write_la(i, reg_la3_data_in, k_array[i][0], k_array[i][1], k_array[i][2]);
 		write_la(i, reg_la3_data_in, k_array[i][3], k_array[i][4], k_array[i][5]);
-		// break;
-		}
+		break;
+	// } else {
+	// 	write_la(i, reg_la3_data_in, k_array[i][0], k_array[i][1], k_array[i][2]);
+	// 	write_la(i, reg_la3_data_in, k_array[i][3], k_array[i][4], k_array[i][5]);
+	// 	// break;
+	// 	}
 	}
 }
 

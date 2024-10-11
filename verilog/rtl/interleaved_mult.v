@@ -17,21 +17,22 @@
 
 module shift_reg (clk, load, shift_r, rst, A, Z);
    input  [162:0] A;
-   input  clk, load, shift_r, rst;
+   input  wire clk, load, shift_r, rst;
    output wire [162:0] Z;
 
    reg [162:0] aa;
    
    assign Z = aa;
 
-   always @(posedge clk or rst) begin
+   always @(posedge clk or posedge rst) begin
 	   if (rst)
 		   aa <= 0;
 	   else if (load)
 		   aa <= A;
 	   else if (shift_r) begin
 		  if (aa[162]) begin
-			aa <= (aa << 1) ^ 8'hC9;
+			aa <= (aa << 1) ^163'h0000000000000000000000000000000000000000C9;
+			// aa[7:0] <= aa[7:0] ^ 8'hC9;
 		  end else begin
 			aa <= aa << 1;
 		  end
@@ -98,28 +99,33 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 	end
 
 	//FSM process
-	always @(*) begin
-		case (current_state)
-			IDLE: begin
-				shift_r <= 1'b0;
-				load_done <= 1'b0;
-			end
-			LOAD: begin
-				load_done <= 1'b1;
-				shift_r <= 1'b0;
-			end
-			SHIFT: begin
-				load_done <= 1'b0;
-				shift_r <= 1'b1;
-			end
-			ST_DONE: begin
-				shift_r <= 1'b0;
-			end
-			default: begin
-				load_done <= 1'b0;
-				shift_r <= 1'b0;
-			end
-		endcase
+	always @(posedge clk or posedge rst) begin
+		if (rst) begin
+			shift_r <= 1'b0;
+			load_done <= 1'b0;
+		end else begin
+			case (next_state)
+				IDLE: begin
+					shift_r <= 1'b0;
+					load_done <= 1'b0;
+				end
+				LOAD: begin
+					load_done <= 1'b1;
+					shift_r <= 1'b0;
+				end
+				SHIFT: begin
+					load_done <= 1'b0;
+					shift_r <= 1'b1;
+				end
+				ST_DONE: begin
+					shift_r <= 1'b0;
+				end
+				default: begin
+					load_done <= 1'b0;
+					shift_r <= 1'b0;
+				end
+			endcase
+		end
 	end
 	
 
@@ -139,10 +145,9 @@ module interleaved_mult (clk, rst, start, A, B, Z, done);
 					next_state = IDLE;
 			end
 			LOAD: begin
-				if (load_done) 
-					next_state = SHIFT;
-				else
-					next_state = LOAD;
+				
+				next_state = SHIFT;
+				
 			end
 			SHIFT: begin
 				if (count_done && start)

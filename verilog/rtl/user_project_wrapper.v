@@ -101,7 +101,6 @@ module user_project_wrapper #(
 
 		.la_data_in(la_data_in),
 		.la_data_out(la_data_out),
-		.la_oenb (la_oenb),
 		
 		// Control bus sm_bec_v3
 		.master_ena_proc(slave_ena),

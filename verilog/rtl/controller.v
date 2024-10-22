@@ -48,7 +48,6 @@ module controller (
 	// Logic Analyzer Signals
 	input  [127:0] la_data_in,
 	output reg [127:0] la_data_out,
-	input  [127:0] la_oenb,
 	
 	// Interconnection bus of BEC
 	output reg master_ena_proc,
@@ -59,14 +58,13 @@ module controller (
 	output ki,
 	input next_key,
 
-	input [3:0] becStatus,
 	input slv_done,
+    input [3:0] becStatus,
 	input [162:0] data_in
 );
 	wire clk;
 	wire rst;
-	reg master_enable, master_load, enable_proc, enable_write, updateRegs;
-	reg reg_cnt;
+	reg enable_proc, enable_write, updateRegs;
 
 	reg [162:0] reg_temp;
 
@@ -114,66 +112,73 @@ module controller (
 
 			proc: begin
 				if (slv_done) begin
-					next_state <= read_mode;
+					next_state = read_mode;
 				end else begin 
-					next_state <= proc;
+					next_state = proc;
 				end
 			end
 
 			read_mode: begin
 				if (updateRegs == 1'b1) begin
-					next_state <= idle;
+					next_state = idle;
 				end else begin
-					next_state <= read_mode;
+					next_state = read_mode;
 				end
 			end
 
 			default:
-			next_state <= idle;
+			next_state = idle;
 		endcase
 	end
 
-	always @(*) begin
-		case (current_state)
-			idle: begin
-				enable_proc <= 1'b0;
-				updateRegs <= 1'b0;
-				if (la_data_in[31:16] == 16'hAB30) begin
-					enable_write <= 1'b1;
-				end else 
-					enable_write <= 1'b0;
-			end 
-
-			write_mode: begin
-				updateRegs <= 1'b0;
-				if (la_data_in[31:16] == 16'hAB41) begin
-					enable_proc <= 1'b1;
-				end else 
+	always @(posedge clk or posedge rst) begin
+        if (rst) begin
+			enable_write <= 1'b0;
+			enable_proc <= 1'b0;
+			master_ena_proc <= 1'b0;
+			updateRegs <= 1'b0;
+		end else begin
+			case (current_state)
+				idle: begin
 					enable_proc <= 1'b0;
-			end
-
-			proc: begin
-				enable_write <= 1'b0;
-				if (~slv_done)
-					master_ena_proc <= 1'b1;
-				else
-					master_ena_proc <= 1'b0;
-			end
-
-			read_mode: begin
-				master_ena_proc <= 1'b0;
-				if (la_data_in[32:16] == 16'hAB50)
-					updateRegs <= 1'b1;
-				else
 					updateRegs <= 1'b0;
-			end
-			default: begin
-				master_ena_proc <= 1'b0;
-				enable_write <= 1'b0;
-				enable_proc <= 1'b0;
-				updateRegs <= 1'b0;
-			end
-		endcase
+					if (la_data_in[31:16] == 16'hab30) begin
+						enable_write <= 1'b1;
+					end else 
+						enable_write <= 1'b0;
+				end 
+
+				write_mode: begin
+					updateRegs <= 1'b0;
+					if (la_data_in[31:16] == 16'hAB41) begin
+						enable_proc <= 1'b1;
+					end else 
+						enable_proc <= 1'b0;
+				end
+
+				proc: begin
+					enable_write <= 1'b0;
+					if (~slv_done)
+						master_ena_proc <= 1'b1;
+					else
+						master_ena_proc <= 1'b0;
+				end
+
+				read_mode: begin
+					master_ena_proc <= 1'b0;
+					if (la_data_in[31:16] == 16'hAB50)
+						updateRegs <= 1'b1;
+					else
+						updateRegs <= 1'b0;
+				end
+				default: begin
+					master_ena_proc <= 1'b0;
+					enable_write <= 1'b0;
+					enable_proc <= 1'b0;
+					updateRegs <= 1'b0;
+				end
+			endcase
+		end		
 	end
 
 	always @(posedge clk or posedge rst) begin

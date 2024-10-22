@@ -17,16 +17,6 @@
 //`include "../../../verilog/rtl/classic_squarer.v"
 //`include "../../../verilog/rtl/interleaved_mult.v"
 
-<<<<<<< HEAD
-module acb (
-    `ifdef USE_POWER_PINS
-        inout vccd2,	// User area 2 1.8v supply
-        inout vssd2,	// User area 2 digital ground
-    `endif
-    
-    input clk, rst, enable, configuration,
-    input [162:0] A, B,
-=======
 module acb (    
     input clk, 
     input rst,
@@ -34,7 +24,6 @@ module acb (
     input configuration,
     input [162:0] A,
     input [162:0] B,
->>>>>>> hiepdm
 
     output wire [162:0] C,
 

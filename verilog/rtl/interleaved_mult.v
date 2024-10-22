@@ -15,23 +15,10 @@
 -----------------------------------*/
 
 
-<<<<<<< HEAD
-module shift_reg (
-    
-    `ifdef USE_POWER_PINS
-        inout vccd2,	// User area 2 1.8v supply
-        inout vssd2,	// User area 2 digital ground
-    `endif
-    
-   input  [162:0] A,
-   input  clk, load, shift_r, rst,
-   output wire [162:0] Z);
-=======
 module shift_reg (clk, load, shift_r, rst, A, Z);
    input  [162:0] A;
    input  wire clk, load, shift_r, rst;
    output wire [162:0] Z;
->>>>>>> hiepdm
 
    reg [162:0] aa;
    

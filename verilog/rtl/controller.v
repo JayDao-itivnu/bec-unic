@@ -34,14 +34,11 @@
  *
  *-------------------------------------------------------------
  */
-// `include "../../../verilog/rtl/sm_bec_v3.v"
-// `include "../../../verilog/rtl/counter.v"
-module user_proj_example (
+
+module controller (
 `ifdef USE_POWER_PINS
 	inout vccd1,	// User area 1 1.8V supply
-	inout vccd2,	// User area 2 1.8v supply
 	inout vssd1,	// User area 1 digital ground
-	inout vssd2,	// User area 2 digital ground
 `endif
 
 	// // Wishbone Slave ports (WB MI A)
@@ -51,25 +48,33 @@ module user_proj_example (
 	// Logic Analyzer Signals
 	input  [127:0] la_data_in,
 	output reg [127:0] la_data_out,
-	input  [127:0] la_oenb
+	
+	// Interconnection bus of BEC
+	output reg master_ena_proc,
+	output load_data,
+	output reg [2:0] load_status,
+	output [162:0] data_out,
+	output reg trigLoad,
+	output ki,
+	input next_key,
+
+	input slv_done,
+    input [3:0] becStatus,
+	input [162:0] data_in
 );
 	wire clk;
 	wire rst;
-	reg master_enable, master_load, master_ena_proc, enable_proc, enable_write, updateRegs;
-	wire slv_done;
-	parameter DELAY = 2000;
+	reg enable_proc, enable_write, updateRegs;
 
-	reg [162:0] reg_w1, reg_z1, reg_w2, reg_z2, reg_inv_w0, reg_d, reg_key;
-	reg [162:0] reg_wout, reg_zout;
+	reg [162:0] reg_temp;
 
-	wire [162:0] wout, zout;
-	wire next_key;
 	// FSM Definition
 	reg [1:0]current_state, next_state;
-	parameter idle=2'b00, write_mode=2'b01, proc=2'b11, read_mode=2'b10;
-
-	
-	
+	parameter idle=2'b00, write_mode=2'b01,  proc=2'b11, read_mode=2'b10;
+	assign ki = (current_state == proc) ? reg_temp[0] : 1'b0;
+	// assign trigLoad = (enable_write == 1'b1) ? ~la_data_out[122] : 1'b0;
+	assign data_out = ((current_state == write_mode) & la_data_out[122] == 1'b0) ? reg_temp : 0;
+	assign load_data = enable_write;
 	// Assuming LA probes [65:64] are for controlling the count clk & reset  
 	assign clk = wb_clk_i;
 	assign rst = wb_rst_i;
@@ -79,29 +84,7 @@ module user_proj_example (
 	/*
 	Nơi khai báo tên instantaneous và nối các chân của khối BEC.
 	*/
-	sm_bec_v3 bec_core (
-		`ifdef USE_POWER_PINS
-			.vccd2(vccd2),  // User area 2 1.8V power
-			.vssd2(vssd2),  // User area 2 digital ground
-		`endif
 
-		.clk(clk),
-		.rst(rst),
-		.enable(master_ena_proc),
-		.w1(reg_w1),
-		.z1(reg_z1),
-		.w2(reg_w2),
-		.z2(reg_z2),
-		.ki(reg_key[0]),
-		.d(reg_d),
-		.inv_w0(reg_inv_w0),
-		.next_key(next_key),
-		.wout(wout),
-		.zout(zout),
-		.done(slv_done)
-	);
-
-	
 	always @(posedge clk or posedge rst) begin
 		if (rst) 
 			current_state <= idle;
@@ -109,193 +92,207 @@ module user_proj_example (
 			current_state <= next_state;
 	end
 
-	always @(enable_write or enable_proc or updateRegs or slv_done) begin
+	always @(*) begin
 		case (current_state)
 			idle: begin
 				if (enable_write == 1'b1) begin
-					next_state <= write_mode;
+					next_state = write_mode;
 				end else begin 
-					next_state <= idle;
+					next_state = idle;
 				end
 			end
 
 			write_mode: begin
 				if (enable_proc == 1'b1) begin
-					next_state <= proc;
+					next_state = proc;
 				end else begin 
-					next_state <= write_mode;
+					next_state = write_mode;
 				end
 			end
 
 			proc: begin
-				if (slv_done == 1'b1) begin
-					next_state <= read_mode;
+				if (slv_done) begin
+					next_state = read_mode;
 				end else begin 
-					next_state <= proc;
+					next_state = proc;
 				end
 			end
 
 			read_mode: begin
 				if (updateRegs == 1'b1) begin
-					next_state <= idle;
+					next_state = idle;
 				end else begin
-					next_state <= read_mode;
+					next_state = read_mode;
 				end
 			end
 
 			default:
-			next_state <= idle;
-		endcase
-	end
-
-	always @(*) begin
-		case (current_state)
-			idle: begin
-				enable_proc <= 1'b0;
-				updateRegs <= 1'b0;
-				if (la_data_in[31:16] == 16'hAB30) begin
-					enable_write <= 1'b1;
-				end else 
-					enable_write <= 1'b0;
-			end 
-
-			write_mode: begin
-				updateRegs <= 1'b0;
-				if (la_data_in[31:16] == 16'hAB41) begin
-					enable_proc <= 1'b1;
-				end else 
-					enable_proc <= 1'b0;
-			end
-
-			proc: begin
-				enable_write <= 1'b0;
-				if (~slv_done)
-					master_ena_proc <= 1'b1;
-				else
-					master_ena_proc <= 1'b0;
-			end
-
-			read_mode: begin
-				master_ena_proc <= 1'b0;
-				if (la_data_in[32:16] == 16'hAB50)
-					updateRegs <= 1'b1;
-				else
-					updateRegs <= 1'b0;
-			end
-			default: begin
-				master_ena_proc <= 1'b0;
-				enable_write <= 1'b0;
-				enable_proc <= 1'b0;
-				updateRegs <= 1'b0;
-			end
+			next_state = idle;
 		endcase
 	end
 
 	always @(posedge clk or posedge rst) begin
+        if (rst) begin
+			enable_write <= 1'b0;
+			enable_proc <= 1'b0;
+			master_ena_proc <= 1'b0;
+			updateRegs <= 1'b0;
+		end else begin
+			case (current_state)
+				idle: begin
+					enable_proc <= 1'b0;
+					updateRegs <= 1'b0;
+					if (la_data_in[31:16] == 16'hab30) begin
+						enable_write <= 1'b1;
+					end else 
+						enable_write <= 1'b0;
+				end 
+
+				write_mode: begin
+					updateRegs <= 1'b0;
+					if (la_data_in[31:16] == 16'hAB41) begin
+						enable_proc <= 1'b1;
+					end else 
+						enable_proc <= 1'b0;
+				end
+
+				proc: begin
+					enable_write <= 1'b0;
+					if (~slv_done)
+						master_ena_proc <= 1'b1;
+					else
+						master_ena_proc <= 1'b0;
+				end
+
+				read_mode: begin
+					master_ena_proc <= 1'b0;
+					if (la_data_in[31:16] == 16'hAB50)
+						updateRegs <= 1'b1;
+					else
+						updateRegs <= 1'b0;
+				end
+				default: begin
+					master_ena_proc <= 1'b0;
+					enable_write <= 1'b0;
+					enable_proc <= 1'b0;
+					updateRegs <= 1'b0;
+				end
+			endcase
+		end		
+	end
+
+	always @(posedge clk or posedge rst) begin
 		if (rst) begin
-			reg_w1      <= 0;
-			reg_z1      <= 0;
-			reg_w2      <= 0;
-			reg_z2      <= 0;
-			reg_inv_w0  <= 0;
-			reg_d       <= 0;
-			reg_key     <= 0;
+			reg_temp      <= 0;
+			load_status   <= 0;
+			trigLoad	  <= 0;
 			la_data_out <= {(128){1'b0}};
 	
 		end else begin
 			case (current_state)
 				idle: begin
-
 					la_data_out[127:122] <= 6'b000000; 
-
 				end 
 
 				write_mode: begin
 					if (la_data_in[95:82] == 14'b00000000000001) begin
-						reg_w1[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0001; 	//0x04
 					end else if (la_data_in[95:82] == 14'b00000000000011) begin
-						reg_w1[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0010;	//0x08
+						trigLoad			<= 1'b1;
+						load_status <= 3'b000;				// Pushing w1 to the BEC
 
 					end else if (la_data_in[95:82] == 14'b00000000000111) begin
-						reg_z1[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0011;	//0x0C
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000000001111) begin
-						reg_z1[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0100; 	//0x10
-
+						trigLoad			<= 1'b1;
+						load_status <= 3'b001;				// Pushing z1 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000000011111) begin
-						reg_w2[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0101;	//0x14
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000000111111) begin
-						reg_w2[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b0110;	//0x18
-
+						trigLoad			<= 1'b1;
+						load_status <= 3'b010;				// Pushing w2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000001111111) begin
-						reg_z2[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b0111;	//0x1C
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00000011111111) begin
-						reg_z2[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1000;	//0x20
-
+						trigLoad			<= 1'b1;
+						load_status <= 3'b011;				// Pushing z2 to the BEC
 					end else if (la_data_in[95:82] == 14'b00000111111111) begin
-						reg_inv_w0[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
 						la_data_out[125:122] <= 4'b1001;	//0x24
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00001111111111) begin
-						reg_inv_w0[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1010;	//0x28
-
+						trigLoad			<= 1'b1;
+						load_status <= 3'b100;				// Pushing inv_w0 to the BEC
 					end else if (la_data_in[95:82] == 14'b00011111111111) begin
-						reg_d[162:82] 	<= la_data_in[80:0];
-						la_data_out[125:122] <= 4'b1011;	//0x2C
+						reg_temp[162:82] 	<= la_data_in[80:0];
+						la_data_out[125:122] <= 4'b1011;	// 0x2C in
+						trigLoad			<= 1'b0;
 					end else if (la_data_in[95:82] == 14'b00111111111111) begin
-						reg_d[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[125:122] <= 4'b1100; 	//0x30
-
+						trigLoad			<= 1'b1;
+						load_status <= 3'b101;				// Pushing d to the BEC
 					end else if (la_data_in[95:82] == 14'b01111111111111) begin
-						reg_key[162:82] 	<= la_data_in[80:0];
+						reg_temp[162:82] 	<= la_data_in[80:0];
+						trigLoad			<= 1'b0;
 						la_data_out[125:122] <= 4'b1101;	//0x34
 					end else if (la_data_in[95:82] == 14'b11111111111111) begin
-						reg_key[81:0] 		<= la_data_in[81:0];
+						reg_temp[81:0] 		<= la_data_in[81:0];
 						la_data_out[127:122] <= 6'b011110;	//0x78
 					end
 				end
-				
+
 				proc: begin
 					la_data_out[127:122] <= 6'b100111;
 					la_data_out[121:0] <= {(122){1'b0}};
 					if (next_key) begin
-						reg_key <= reg_key >> 1;
+						reg_temp <= reg_temp >> 1;
 					end
-
-					if (slv_done) begin
-						reg_wout <= wout;
-						reg_zout <= zout;
-					end	
 				end
 
 				read_mode: begin
 					// enable_write <= 1'h0;
+					reg_temp <= data_in;
 					if (la_data_in[31:24] == 8'hAB) begin
 						case (la_data_in[23:16]) 
 							8'h04: begin
-								la_data_out[113:32] 	<= reg_wout[81:0]; 
+								load_status <= 3'b000;
+								la_data_out[113:32] 	<= reg_temp[81:0]; 
 								la_data_out[127:114]	<= 14'b11001000000000;		// 0xC8
 							end
 
 							8'h08: begin
-								la_data_out[112:32] 	<= reg_zout[162:82]; 
+								load_status <= 3'b001;
+								la_data_out[112:32] 	<= reg_temp[162:82]; 
 								la_data_out[127:114]	<= 14'b11001100000000;		// 0xCC
 							end
 
 							8'h0C: begin
-								la_data_out[113:32] 	<= reg_zout[81:0]; 
+								load_status <= 3'b001;
+								la_data_out[113:32] 	<= reg_temp[81:0]; 
 								la_data_out[127:114]	<= 14'b11010000000000;		// 0xD0
 							end
 
 							default: begin
-								la_data_out[112:32] 	<= reg_wout[162:82]; 		// 0xC4
+								load_status <= 3'b000;
+								la_data_out[112:32] 	<= reg_temp[162:82]; 		// 0xC4
 								la_data_out[127:114]	<= 14'b11000100000000;
 							end
 						endcase
@@ -303,16 +300,9 @@ module user_proj_example (
 				end
 				
 				default: begin
-					reg_w1      <= 0;
-					reg_z1      <= 0;
-					reg_w2      <= 0;
-					reg_z2      <= 0;
-					reg_inv_w0  <= 0;
-					reg_d       <= 0;
-					reg_key     <= 0;
+					reg_temp	<= 0;
+					load_status <= 0;
 					
-					reg_wout    <= 0;
-					reg_zout    <= 0;
 					
 					la_data_out[127:122] <= 6'b001100; 
 				end

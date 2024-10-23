@@ -70,7 +70,12 @@ void main()
 	reg_mprj_datal	=	reg_la0_data = 0xAB300000;
 
 	for (uint32_t i = 0; i< 2; i++){
-		reg_la0_data = 0xAB30FFFF;
+		if (i == 0) {
+			reg_la0_data = 0xAB300000;
+		} else {
+			reg_la0_data = 0xAB30FFFF;
+		}
+		
 		// Configure LA probes 2, 1, and 0 [95:0] as outputs from the cpu 
 		// Configure LA probes 3 [127:96] as inputs to the cpu
 		reg_la0_oenb = reg_la0_iena = 0xFFFFFFFF;    // [31:0]

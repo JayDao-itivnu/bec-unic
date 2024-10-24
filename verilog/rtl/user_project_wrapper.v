@@ -104,7 +104,7 @@ module user_project_wrapper #(
 		.la_oenb (la_oenb),
 		
 		// Control bus sm_bec_v3
-		.master_ena_proc(slave_ena),
+		.slv_enable(slave_ena),
 		.load_status(w_loadStatus),
 		.next_key(next_key),
 		.slv_done(w_slvDone),

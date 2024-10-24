@@ -67,7 +67,11 @@ void main()
 	while (reg_mprj_xfer == 1);
 	
 	// Flag start of the test 
-	reg_mprj_datal	=	reg_la0_data = 0xAB300000;
+	// Execute in Single Encryption Mode
+	reg_mprj_datal	=	reg_la0_data = 0xFC300000;
+	
+	// Execute in Multiple Encryption Mode
+	// reg_mprj_datal	=	reg_la0_data = 0xFD300000;
 
 	for (uint32_t i = 0; i< 2; i++){
 		if (i == 0) {

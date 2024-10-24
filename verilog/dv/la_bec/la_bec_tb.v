@@ -15,7 +15,7 @@
 
 `default_nettype none
 
-`timescale 1 ns / 1 ps
+`timescale 1 us / 1 ns
 
 module la_bec_tb;
 	reg clock;
@@ -162,7 +162,9 @@ module la_bec_tb;
 	end
 
 	always @(*) begin
-		if (checkbits == 16'hAB30) begin
+		if (checkbits == 16'hFC30) begin
+			$display("Executing BEC in Single Encryption!");
+		end else if(checkbits == 16'hFD30) begin
 			$display("LA BEC: #%h Started", id_test);
 		end else if(checkbits == 16'hAB41) begin
 			$display("LA BEC: Processor writes data to BEC");
